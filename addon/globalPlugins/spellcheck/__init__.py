@@ -11,25 +11,9 @@
   Crafted by Musharraf Omer <info@blindpandas.com>.
 """
 
-import wx
-import globalPluginHandler
-import scriptHandler
-import gui
-import speech
-import controlTypes
-import globalCommands
+from .spellcheck_ui import GlobalPlugin
 
 
-import addonHandler
-addonHandler.initTranslation()
+# import addonHandler
+# addonHandler.initTranslation()
 
-
-class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def terminate(self):
-        """Terminates the add-on."""
-
-    __gestures = {"kb:nvda+tab": "speakObject"}
