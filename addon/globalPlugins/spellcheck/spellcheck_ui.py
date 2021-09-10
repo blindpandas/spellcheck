@@ -33,7 +33,6 @@ from NVDAObjects import NVDAObject
 from keyboardHandler import  KeyboardInputGesture
 from scriptHandler import script
 from logHandler import log
-from scriptHandler import script
 from textInfos import POSITION_SELECTION
 
 
@@ -395,8 +394,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @staticmethod
     def getSelectedText() -> str:
         """Retrieve the selected text.
-        If the selected text is missing - extract the text from the clipboard.
-        @return: selected text, text from the clipboard, or an empty string
         @rtype: str
         """
         obj = api.getFocusObject()
@@ -407,14 +404,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             info = obj.makeTextInfo(POSITION_SELECTION)
         except (RuntimeError, NotImplementedError):
             info = None
-        if not info or info.isCollapsed:
-            try:
-                text = api.getClipData()
-            except Exception:
-                text = ''
-            if not text or not isinstance(text, str):
-                return ''
-            return text
         return info.text
 
     @script(gesture="kb:nvda+z")
