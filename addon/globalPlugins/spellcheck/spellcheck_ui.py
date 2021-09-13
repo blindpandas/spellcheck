@@ -33,7 +33,6 @@ from NVDAObjects import NVDAObject
 from keyboardHandler import  KeyboardInputGesture
 from scriptHandler import script
 from logHandler import log
-from scriptHandler import script
 from textInfos import POSITION_SELECTION
 
 
@@ -190,13 +189,17 @@ class MisspellingMenuItemObject(MenuItemObject):
     def on_user_choice(self, choice):
         self._user_choice = choice
         if choice.choice_type is UserChoiceType.SUGGESTION:
-            desc = f"accepted: {choice.name}"
+            # translators: appears between the misspelled word and the selected suggestion by the user.
+            desc = _(f"accepted: {choice.name}")
         elif choice.choice_type is UserChoiceType.IGNORE_ONCE:
-            desc = "Ignored this instance "
+            #translators: appears in the spelling error menu if a user chooses to ignore the error once.
+            desc = "Ignored once"
         elif choice.choice_type is UserChoiceType.IGNORE_ALL:
-            desc = "Ignored all instances"
+            #translators: appears in the spelling error menu if a user chooses to ignore all appearance of that word.
+            desc = _("Ignored all")
         elif choice.choice_type is UserChoiceType.ADD_TO_PERSONAL_DICTIONARY:
-            desc = "Added to personal dictionary"
+            #translators: appears in the misspelled words menu when a user chooses to add the erroneous word to the personal dictionary.
+            desc = _("Added to personal dictionary")
         else:
             desc = self.description
         self.description = desc
@@ -233,17 +236,20 @@ class MisspellingMenuItemObject(MenuItemObject):
         menu_items.extend([
             SuggestionMenuItemObject(
                 choice_type=UserChoiceType.IGNORE_ONCE,
-                name="Ignore once",
+                #translators: name of the option in the suggestion menu
+                name=_("Ignore once"),
                 **common_kwargs
             ),
             SuggestionMenuItemObject(
                 choice_type=UserChoiceType.IGNORE_ALL,
-                name="Ignore all",
+                #translators: name of the option in the suggestion menu.
+                name=_("Ignore all"),
                 **common_kwargs
             ),
             SuggestionMenuItemObject(
                 choice_type=UserChoiceType.ADD_TO_PERSONAL_DICTIONARY,
-                name="Add to dictionary",
+                #translators: name of the option in the suggestion menu.
+                name=_("Add to dictionary"),
                 **common_kwargs
             ),
         ])
@@ -395,8 +401,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     @staticmethod
     def getSelectedText() -> str:
         """Retrieve the selected text.
-        If the selected text is missing - extract the text from the clipboard.
-        @return: selected text, text from the clipboard, or an empty string
         @rtype: str
         """
         obj = api.getFocusObject()
@@ -407,19 +411,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             info = obj.makeTextInfo(POSITION_SELECTION)
         except (RuntimeError, NotImplementedError):
             info = None
-        if not info or info.isCollapsed:
-            try:
-                text = api.getClipData()
-            except Exception:
-                text = ''
-            if not text or not isinstance(text, str):
-                return ''
-            return text
         return info.text
 
-    @script(gesture="kb:nvda+z")
+    @script(
+        gesture="kb:nvda+alt+s",
+        # translators: appears in the NVDA input help.
+        description=_("Checks spelling errors for the selected text"),
+        category="spellcheck"
+    )
     def script_launch_testing(self, gesture):
-        """This script should be divided into two: one for selection, and another for clipboard."""
         current_focus = api.getFocusObject()
         if not current_focus.states.intersection(
             {controlTypes.STATE_EDITABLE, controlTypes.STATE_MULTILINE}
@@ -427,14 +427,17 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         selected_text = self.getSelectedText()
         if not selected_text.strip():
-            ui.message("No selection")
+            # translators: the message is announced when there is no text is selected.
+            ui.message_(("No text is selected"))
             return
         # Create our fake menu object
         misspellingsMenu = SpellCheckMenu(
-            name="Spelling Errors",
+            #translators: the name of the menu that shows up when the addon is being activated.
+            name=_("Spelling Errors"),
             text_to_process=selected_text
         )
         if not misspellingsMenu.items:
+            # translators: announced when there are no spelling errors in a selected text.
             ui.message("No spelling mistakes")
             return
         eventHandler.queueEvent("gainFocus", misspellingsMenu)
