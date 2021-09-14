@@ -388,17 +388,17 @@ class SpellCheckMenu(MenuObject):
         self.close_menu()
 
     def replace_text(self):
-        """
-        As a side effect, it copies the text to the clipboard.
-        """
+        old_clipboard_text = api.getClipData()
         is_readonly = controlTypes.STATE_READONLY in self.parent.states
-        api.copyToClip(self.get_corrected_text(), is_readonly)
         if is_readonly:
             # translators: spoken message
             queueHandler.queueFunction(queueHandler.eventQueue, ui.message, _("Can not replace text, the control is read only"))
             queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
             queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
-            return
-        queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
-        queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
-        queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
+        else:
+            api.copyToClip(self.get_corrected_text())
+            queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
+            queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
+            queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
+            queueHandler.queueFunction(queueHandler.eventQueue, api.copyToClip, old_clipboard_text)
+
