@@ -1,52 +1,35 @@
 # coding: utf-8
 
-"""
-This is the implemented user experience:
-* Left/right arrows navigate between misspellings
-* Up/down arrows navigate between suggestions
-When misspelling items are focused:
-    * Enter sets focus to the suggestions menu
-    * Backspace rejects the suggestion and clear the acceptance status
-When suggestions are focused:
-    * Enter accepts the currently focused suggestion and set focus to the misspelling item
+# Copyright (c) 2021 Blind Pandas Team
+# This file is covered by the GNU General Public License.
 
-Notes:
-* Implement the text replacement logic in the close_menu method in the SpellCheckMenu class
-* The code makes heavy use of class inheritance to achieve conciseness (and elegance)
-* Accepting the suggestion will change the description of the misspelling item, and rejecting the suggestion will remove the description
-* Note that the position info of the items in all of the menus is correctly provided (i.e. item 1 of 2)
-"""
-
-import tones
-import sys
 import os
+import tones
 import api
-import ui
 import controlTypes
+import speech
 import queueHandler
 import eventHandler
-import globalPluginHandler
-import speech
 from enum import Enum, auto
 from contextlib import suppress
 from NVDAObjects import NVDAObject
+from NVDAObjects.behaviors import EditableTextWithAutoSelectDetection, EditableTextWithSuggestions
 from keyboardHandler import  KeyboardInputGesture
 from scriptHandler import script
 from logHandler import log
-from textInfos import POSITION_SELECTION
+from .helpers import import_bundled_library
 
 
-# Add the current directory to sys.path, import enchant, and remove the current directory from sys.path
-plugin_directory = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, plugin_directory)
-from enchant .checker import SpellChecker
-sys.path.remove(plugin_directory)
+with import_bundled_library():
+    from cached_property import cached_property
+    from enchant .checker import SpellChecker
 
 
 # This should be set to Tru in the final release 
 # It prevent any key strokes from reaching the application
 # Thereby avoiding any unintentional edits to the underlying text control
 CAPTURE_KEYS_WHILE_IN_FOCUS = False
+PASTE_GESTURE = KeyboardInputGesture.fromName("control+v")
 
 
 class UserChoiceType(Enum):
@@ -64,7 +47,8 @@ class UserChoiceType(Enum):
 class KeyboardNavigableNVDAObjectMixin:
     windowClassName = ""
     windowControlID = 0
-    windowThreadID = 0
+    windowThreadID = -1
+    windowHandle = -1
 
     def script_do_nothing(self, gesture):
         pass
@@ -137,6 +121,12 @@ class ItemContainerMixin:
         return item
 
 
+class FakeEditableNVDAObject(KeyboardNavigableNVDAObjectMixin, EditableTextWithSuggestions, NVDAObject):
+    role = controlTypes.ROLE_EDITABLETEXT
+    states = {controlTypes.STATE_EDITABLE, controlTypes.STATE_FOCUSABLE, controlTypes.STATE_FOCUSED,}
+    processID = os.getpid()
+
+
 class MenuItemObject(KeyboardNavigableNVDAObjectMixin, NVDAObject):
     role = controlTypes.ROLE_MENUITEM
 
@@ -170,12 +160,16 @@ class MenuItemObject(KeyboardNavigableNVDAObjectMixin, NVDAObject):
 
 class MisspellingMenuItemObject(MenuItemObject):
 
-    def __init__(self, suggestions, *args, **kwargs):
+    def __init__(self, lang_dict, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.suggestions = suggestions
+        self.lang_dict = lang_dict
         # Save this here
         self.original_misspelling = self.name
         self._user_choice = None
+
+    @cached_property
+    def suggestions(self):
+        return self.lang_dict.suggest(self.original_misspelling)
 
     def get_replacement_info(self):
         if self._user_choice is not None:
@@ -206,7 +200,7 @@ class MisspellingMenuItemObject(MenuItemObject):
         self.back_to_misspelling()
 
     def back_to_misspelling(self):
-        eventHandler.queueEvent("suggestionsClosed", self.parent.parent)
+        eventHandler.queueEvent("suggestionsClosed", FakeEditableNVDAObject())
         eventHandler.queueEvent("gainFocus", self.parent)
 
     @property
@@ -278,7 +272,7 @@ class MisspellingMenuItemObject(MenuItemObject):
     @script(gesture="kb:downarrow")
     def script_downarrow(self, gesture):
         self.suggestions_menu.set_current(0)
-        eventHandler.queueEvent("suggestionsOpened", self.parent.parent)
+        eventHandler.queueEvent("suggestionsOpened", FakeEditableNVDAObject())
         eventHandler.queueEvent("gainFocus", self.suggestions_menu)
 
     @script(gesture="kb:enter")
@@ -338,28 +332,29 @@ class MenuObject(KeyboardNavigableNVDAObjectMixin, ItemContainerMixin, NVDAObjec
 class SpellCheckMenu(MenuObject):
     """This is a special menu object."""
 
-    def __init__(self, text_to_process, *args, **kwargs):
+    def __init__(self, language_tag, text_to_process, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Keep reference to the text to reinitialize the SpellChecker a second time
-        self.lang = "en_US"
+        self.language_tag = language_tag
         self.text_to_process = text_to_process
-        # This is not an instance variable!
-        spellchecker = self.make_spellchecker(self.lang, self.text_to_process)
+        spellchecker = self.make_spellchecker(self.language_tag, self.text_to_process)
+        misspelling_menu_items = [
+            MisspellingMenuItemObject(parent=self, name=item.word, lang_dict=spellchecker.dict)
+            for item in spellchecker
+        ]
         self.init_container_state(
             # Here we consume our SpellChecker for the first time
             # If you did a for-loop after this line, you'll get nothing
-            items=[MisspellingMenuItemObject(parent=self, name=item.word, suggestions=item.suggest()) for item in spellchecker]
+            items=misspelling_menu_items
         )
 
-    @staticmethod
-    def make_spellchecker(lang, text):
+    def make_spellchecker(self, lang, text):
         spellchecker = SpellChecker(lang)
         spellchecker.set_text(text)
         return spellchecker
 
     def get_corrected_text(self):
         # We should reinitialize the spellChecker class with the same text we used to initialize it in the first place
-        spellchecker = self.make_spellchecker(self.lang, self.text_to_process)
+        spellchecker = self.make_spellchecker(self.language_tag, self.text_to_process)
         replacement_info = [misspelling.get_replacement_info() for misspelling in self]
         for (chk, replacement_info) in zip(spellchecker, replacement_info):
             misspelling, choice_type, choice_value = replacement_info
@@ -385,59 +380,9 @@ class SpellCheckMenu(MenuObject):
 
     def replace_text(self):
         """
-        Not sure whether it will work or not 
-        At least it requires the user to select the text, which is required anyway.
-        Also, as a side effect, it copies the text to the clipboard.
+        As a side effect, it copies the text to the clipboard.
         """
         api.copyToClip(self.get_corrected_text())
-        paste_gesture = KeyboardInputGesture.fromName("control+v")
-        eventHandler.executeEvent("gainFocus", self.parent)
-        paste_gesture.send()
-        eventHandler.queueEvent("gainFocus", self.parent)
-
-
-class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-
-    @staticmethod
-    def getSelectedText() -> str:
-        """Retrieve the selected text.
-        @rtype: str
-        """
-        obj = api.getFocusObject()
-        treeInterceptor = obj.treeInterceptor
-        if hasattr(treeInterceptor, 'TextInfo') and not treeInterceptor.passThrough:
-            obj = treeInterceptor
-        try:
-            info = obj.makeTextInfo(POSITION_SELECTION)
-        except (RuntimeError, NotImplementedError):
-            info = None
-        return info.text
-
-    @script(
-        gesture="kb:nvda+alt+s",
-        # translators: appears in the NVDA input help.
-        description=_("Checks spelling errors for the selected text"),
-        category="spellcheck"
-    )
-    def script_launch_testing(self, gesture):
-        current_focus = api.getFocusObject()
-        if not current_focus.states.intersection(
-            {controlTypes.STATE_EDITABLE, controlTypes.STATE_MULTILINE}
-        ):
-            return
-        selected_text = self.getSelectedText()
-        if not selected_text.strip():
-            # translators: the message is announced when there is no text is selected.
-            ui.message_(("No text is selected"))
-            return
-        # Create our fake menu object
-        misspellingsMenu = SpellCheckMenu(
-            #translators: the name of the menu that shows up when the addon is being activated.
-            name=_("Spelling Errors"),
-            text_to_process=selected_text
-        )
-        if not misspellingsMenu.items:
-            # translators: announced when there are no spelling errors in a selected text.
-            ui.message("No spelling mistakes")
-            return
-        eventHandler.queueEvent("gainFocus", misspellingsMenu)
+        queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
+        queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
+        queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
