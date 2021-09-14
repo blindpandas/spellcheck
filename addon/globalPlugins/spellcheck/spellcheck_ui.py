@@ -388,7 +388,10 @@ class SpellCheckMenu(MenuObject):
         self.close_menu()
 
     def replace_text(self):
-        old_clipboard_text = api.getClipData()
+        try:
+            old_clipboard_text = api.getClipData()
+        except:
+            old_clipboard_text = None
         is_readonly = controlTypes.STATE_READONLY in self.parent.states
         if is_readonly:
             # translators: spoken message
@@ -400,5 +403,6 @@ class SpellCheckMenu(MenuObject):
             queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
             queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
             queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
-            queueHandler.queueFunction(queueHandler.eventQueue, api.copyToClip, old_clipboard_text)
+            if old_clipboard_text is not None:
+                queueHandler.queueFunction(queueHandler.eventQueue, api.copyToClip, old_clipboard_text)
 
