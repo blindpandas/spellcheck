@@ -6,6 +6,7 @@
 import os
 import tones
 import api
+import ui
 import controlTypes
 import speech
 import queueHandler
@@ -390,7 +391,14 @@ class SpellCheckMenu(MenuObject):
         """
         As a side effect, it copies the text to the clipboard.
         """
-        api.copyToClip(self.get_corrected_text())
+        is_readonly = controlTypes.STATE_READONLY in self.parent.states
+        api.copyToClip(self.get_corrected_text(), is_readonly)
+        if is_readonly:
+            # translators: spoken message
+            queueHandler.queueFunction(queueHandler.eventQueue, ui.message, _("Can not replace text, the control is read only"))
+            queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
+            queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
+            return
         queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
         queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
         queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
