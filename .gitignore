@@ -8,3 +8,7 @@ addon/doc/en/
 *.py[co]
 *.nvda-addon
 .sconsign.dblite
+
+# pip related stuff
+Pipfile
+Pipfile.lock

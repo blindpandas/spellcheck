@@ -205,7 +205,7 @@ class MisspellingMenuItemObject(MenuItemObject):
 
     @property
     def suggestions_menu(self):
-        self._suggestions_menu = MenuObject(name="Suggestions")
+        self._suggestions_menu = SuggestionsMenu(name="Suggestions")
         common_kwargs = {
             "acceptance_callback": self.on_user_choice,
             "parent": self._suggestions_menu,
@@ -327,6 +327,14 @@ class MenuObject(KeyboardNavigableNVDAObjectMixin, ItemContainerMixin, NVDAObjec
     def event_gainFocus(self):
         speech.speakObject(self, controlTypes.OutputReason.FOCUS)
         eventHandler.queueEvent("gainFocus", self.get_current_item())
+
+
+class SuggestionsMenu(MenuObject):
+
+    def close_menu(self):
+        eventHandler.queueEvent("suggestionsClosed", FakeEditableNVDAObject())
+        eventHandler.queueEvent("gainFocus", self.parent.parent)
+        
 
 
 class SpellCheckMenu(MenuObject):

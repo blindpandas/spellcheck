@@ -9,6 +9,7 @@ import zipfile
 import wx
 import gui
 import globalVars
+import contextlib
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -27,8 +28,11 @@ def onInstall():
     rv = gui.messageBox(
         _("The Spellcheck add-on comes bundled with some default language dictionaries. Would you like to add them?"),
         _("Add Default Dictionaries"),
-        wx.YES_NO|wx.ICON_QUESTION
+        wx.YES_NO|wx.ICON_INFORMATION
     )
     if rv == wx.YES:
         with zipfile.ZipFile(BUNDLED_LANGUAGE_DICTIONARIES_ARCHIVE, "r") as archive:
             archive.extractall(SPELLCHECK_DICTIONARIES_DIRECTORY)
+        with contextlib.suppress(Exception):
+            os.unlink(BUNDLED_LANGUAGE_DICTIONARIES_ARCHIVE)
+
