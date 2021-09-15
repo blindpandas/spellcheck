@@ -29,7 +29,7 @@ from logHandler import log
 from .language_dictionary import (
     set_enchant_language_dictionaries_directory,
     get_all_possible_languages,
-    ensure_language_dictionary_available,
+    get_enchant_language_dictionary,
     download_language_dictionary,
     LanguageDictionaryNotAvailable,
     LanguageDictionaryDownloadable,
@@ -39,6 +39,7 @@ from .spellcheck_ui import SpellCheckMenu, SCRCAT__SPELLCHECK
 
 
 import addonHandler
+
 addonHandler.initTranslation()
 
 
@@ -143,9 +144,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     )
     def script_spellcheck_text(self, gesture):
         text = self.getSelectedText()
-        if not text.strip():
-            # translators: the message is announced when there is no text is selected.
-            ui.message(_("No text is selected"))
+        if not text:
             return
         if self._active_spellcheck_language is None:
             spellcheck_language = self.get_input_language(
@@ -187,13 +186,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
 
     def spellcheck(self, language_tag, text_to_spellcheck):
-        if not self.check_or_download_language_dictionary(language_tag):
+        language_dictionary = self.obtain_language_dictionary(language_tag)
+        if not language_dictionary:
             return
         # Create our fake menu object
         misspellingsMenu = SpellCheckMenu(
             # translators: the name of the menu that shows up when the addon is being activated.
             name=_("Spelling Errors"),
-            language_tag=language_tag,
+            language_dictionary=language_dictionary,
             text_to_process=text_to_spellcheck,
         )
         if not misspellingsMenu.items:
@@ -202,10 +202,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             return
         eventHandler.queueEvent("gainFocus", misspellingsMenu)
 
-    def check_or_download_language_dictionary(self, language_tag):
+    def obtain_language_dictionary(self, language_tag):
         try:
-            ensure_language_dictionary_available(language_tag)
-            return True
+            return get_enchant_language_dictionary(language_tag)
         except MultipleDownloadableLanguagesFound as e:
             choice_dialog = LanguageChoiceDialog(
                 e.available_variances,
@@ -241,12 +240,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
     @staticmethod
     def getSelectedText() -> str:
-        """Retrieve the selected text.
-        @rtype: str
-        """
+        """Retrieve the selected text."""
         obj = api.getFocusObject()
         # Restrict the selection to editable text only
         if not isinstance(obj, NVDAObjects.behaviors.EditableText):
+            # translators: the message is announced when there is no text is selected.
+            queueHandler.queueFunction(
+                queueHandler.eventQueue,
+                ui.message,
+                _("Spellchecking is not supported here"),
+            )
             return
         treeInterceptor = obj.treeInterceptor
         if hasattr(treeInterceptor, "TextInfo") and not treeInterceptor.passThrough:
@@ -254,5 +257,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         text = ""
         with suppress(RuntimeError, NotImplementedError):
             info = obj.makeTextInfo(textInfos.POSITION_SELECTION)
-            text = info.text
+            text = info.text.strip()
+        if not text:
+            # translators: the message is announced when there is no text is selected.
+            queueHandler.queueFunction(
+                queueHandler.eventQueue, ui.message, _("No text is selected")
+            )
         return text

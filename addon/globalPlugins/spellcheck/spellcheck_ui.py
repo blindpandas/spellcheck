@@ -37,6 +37,7 @@ PASTE_GESTURE = KeyboardInputGesture.fromName("control+v")
 
 
 import addonHandler
+
 addonHandler.initTranslation()
 
 
@@ -367,11 +368,13 @@ class SuggestionsMenu(MenuObject):
 class SpellCheckMenu(MenuObject):
     """This is a special menu object."""
 
-    def __init__(self, language_tag, text_to_process, *args, **kwargs):
+    def __init__(self, language_dictionary, text_to_process, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.language_tag = language_tag
+        self.language_dictionary = language_dictionary
         self.text_to_process = text_to_process
-        spellchecker = self.make_spellchecker(self.language_tag, self.text_to_process)
+        spellchecker = self.make_spellchecker(
+            self.language_dictionary, self.text_to_process
+        )
         misspelling_menu_items = [
             MisspellingMenuItemObject(
                 parent=self, name=item.word, lang_dict=spellchecker.dict
@@ -386,14 +389,16 @@ class SpellCheckMenu(MenuObject):
         # A list of ignored words in this session
         self._ignored_words = []
 
-    def make_spellchecker(self, lang, text):
-        spellchecker = SpellChecker(lang)
+    def make_spellchecker(self, language_dictionary, text):
+        spellchecker = SpellChecker(language_dictionary)
         spellchecker.set_text(text)
         return spellchecker
 
     def get_corrected_text(self):
         # We should reinitialize the spellChecker class with the same text we used to initialize it in the first place
-        spellchecker = self.make_spellchecker(self.language_tag, self.text_to_process)
+        spellchecker = self.make_spellchecker(
+            self.language_dictionary, self.text_to_process
+        )
         for ignored_word in self._ignored_words:
             spellchecker.ignore_always(ignored_word)
         replacement_info = [misspelling.get_replacement_info() for misspelling in self]

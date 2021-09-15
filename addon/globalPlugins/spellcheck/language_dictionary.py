@@ -5,7 +5,6 @@
 
 import math
 import os
-import re
 import globalVars
 import languageHandler
 from io import BytesIO
@@ -21,7 +20,6 @@ with import_bundled_library():
 
 
 # Constants
-LANGUAGE_PATTERN = re.compile(r"(?P<two_letter_code>[a-z]{2,})(_(?P<country_code>[A-Z]{2,}))?")
 DICT_GITHUB_API_URL = "https://api.github.com/repos/LibreOffice/dictionaries/contents/{lang_tag}?ref=master"
 DICTIONARY_FILE_EXTS = {
     ".dic",
@@ -61,30 +59,17 @@ def set_enchant_language_dictionaries_directory():
 
 
 def get_all_possible_languages():
-    locally_available = set(get_normalized_enchant_languages())
-    downloadable = set(DOWNLOADABLE_LANGUAGES)
-    return list(sorted(locally_available.union(downloadable)))
+    return set(DOWNLOADABLE_LANGUAGES)
 
 
-def get_normalized_enchant_languages():
-    retval = []
-    for lang in enchant.list_languages():
-        match = LANGUAGE_PATTERN.match(lang)
-        if match is None:
-            continue
-        language_tag = lang[match.start():match.end()]
-        retval.append(language_tag)
-    return retval
-
-
-def ensure_language_dictionary_available(lang_tag):
+def get_enchant_language_dictionary(lang_tag):
     try:
-        return enchant.request_dict(lang_tag) is not None
+        return enchant.request_dict(lang_tag)
     except enchant.errors.DictNotFoundError:
         if lang_tag in DOWNLOADABLE_LANGUAGES:
             raise LanguageDictionaryDownloadable(lang_tag)
         elif "_" in lang_tag:
-            return ensure_language_dictionary_available(lang_tag.split("_")[0])
+            return get_enchant_language_dictionary(lang_tag.split("_")[0])
         else:
             if len(lang_tag) == 2:
                 available_variances = [
@@ -96,7 +81,7 @@ def ensure_language_dictionary_available(lang_tag):
                     raise MultipleDownloadableLanguagesFound(
                         language=lang_tag, available_variances=available_variances
                     )
-        raise LanguageDictionaryNotAvailable(lang_tag)
+    raise LanguageDictionaryNotAvailable(lang_tag)
 
 
 def download_language_dictionary(lang_tag, progress_callback, done_callback):
