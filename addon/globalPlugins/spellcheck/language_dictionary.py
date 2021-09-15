@@ -5,7 +5,9 @@
 
 import math
 import os
+import re
 import globalVars
+import languageHandler
 from io import BytesIO
 from functools import partial
 from logHandler import log
@@ -19,6 +21,7 @@ with import_bundled_library():
 
 
 # Constants
+LANGUAGE_PATTERN = re.compile(r"(?P<two_letter_code>[a-z]{2,})(_(?P<country_code>[A-Z]{2,}))?")
 DICT_GITHUB_API_URL = "https://api.github.com/repos/LibreOffice/dictionaries/contents/{lang_tag}?ref=master"
 DICTIONARY_FILE_EXTS = {
     ".dic",
@@ -58,29 +61,41 @@ def set_enchant_language_dictionaries_directory():
 
 
 def get_all_possible_languages():
-    locally_available = set(enchant.list_languages())
+    locally_available = set(get_normalized_enchant_languages())
     downloadable = set(DOWNLOADABLE_LANGUAGES)
     return list(sorted(locally_available.union(downloadable)))
 
 
+def get_normalized_enchant_languages():
+    retval = []
+    for lang in enchant.list_languages():
+        match = LANGUAGE_PATTERN.match(lang)
+        if match is None:
+            continue
+        language_tag = lang[match.start():match.end()]
+        retval.append(language_tag)
+    return retval
+
+
 def ensure_language_dictionary_available(lang_tag):
-    if lang_tag in enchant.list_languages():
-        return True
-    elif lang_tag in DOWNLOADABLE_LANGUAGES:
-        raise LanguageDictionaryDownloadable(lang_tag)
-    elif "_" in lang_tag:
-        return ensure_language_dictionary_available(lang_tag.split("_")[0])
-    else:
-        if len(lang_tag) == 2:
-            available_variances = [
-                downloadable_lang
-                for downloadable_lang in DOWNLOADABLE_LANGUAGES
-                if downloadable_lang.split("_")[0] == lang_tag
-            ]
-            if available_variances:
-                raise MultipleDownloadableLanguagesFound(
-                    language=lang_tag, available_variances=available_variances
-                )
+    try:
+        return enchant.request_dict(lang_tag) is not None
+    except enchant.errors.DictNotFoundError:
+        if lang_tag in DOWNLOADABLE_LANGUAGES:
+            raise LanguageDictionaryDownloadable(lang_tag)
+        elif "_" in lang_tag:
+            return ensure_language_dictionary_available(lang_tag.split("_")[0])
+        else:
+            if len(lang_tag) == 2:
+                available_variances = [
+                    downloadable_lang
+                    for downloadable_lang in DOWNLOADABLE_LANGUAGES
+                    if downloadable_lang.split("_")[0] == lang_tag
+                ]
+                if available_variances:
+                    raise MultipleDownloadableLanguagesFound(
+                        language=lang_tag, available_variances=available_variances
+                    )
         raise LanguageDictionaryNotAvailable(lang_tag)
 
 
