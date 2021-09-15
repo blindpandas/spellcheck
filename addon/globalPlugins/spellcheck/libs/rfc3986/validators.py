@@ -159,12 +159,8 @@ class Validator(object):
         components = [c.lower() for c in components]
         for component in components:
             if component not in self.COMPONENT_NAMES:
-                raise ValueError(
-                    '"{}" is not a valid component'.format(component)
-                )
-        self.validated_components.update(
-            {component: True for component in components}
-        )
+                raise ValueError('"{}" is not a valid component'.format(component))
+        self.validated_components.update({component: True for component in components})
         return self
 
     def require_presence_of(self, *components):
@@ -184,12 +180,8 @@ class Validator(object):
         components = [c.lower() for c in components]
         for component in components:
             if component not in self.COMPONENT_NAMES:
-                raise ValueError(
-                    '"{}" is not a valid component'.format(component)
-                )
-        self.required_components.update(
-            {component: True for component in components}
-        )
+                raise ValueError('"{}" is not a valid component'.format(component))
+        self.required_components.update({component: True for component in components})
         return self
 
     def validate(self, uri):

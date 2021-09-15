@@ -1,6 +1,6 @@
 """Synchronization primitives."""
 
-__all__ = ('Lock', 'Event', 'Condition', 'Semaphore', 'BoundedSemaphore')
+__all__ = ("Lock", "Event", "Condition", "Semaphore", "BoundedSemaphore")
 
 import collections
 import warnings
@@ -46,8 +46,7 @@ class _ContextManager:
 
 class _ContextManagerMixin:
     def __enter__(self):
-        raise RuntimeError(
-            '"yield from" should be used as context manager expression')
+        raise RuntimeError('"yield from" should be used as context manager expression')
 
     def __exit__(self, *args):
         # This must exist because __enter__ exists, even though that
@@ -71,9 +70,11 @@ class _ContextManagerMixin:
         # Deprecated, use 'async with' statement:
         #     async with lock:
         #         <block>
-        warnings.warn("'with (yield from lock)' is deprecated "
-                      "use 'async with lock' instead",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "'with (yield from lock)' is deprecated " "use 'async with lock' instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         yield from self.acquire()
         return _ContextManager(self)
 
@@ -82,9 +83,11 @@ class _ContextManagerMixin:
         return _ContextManager(self)
 
     def __await__(self):
-        warnings.warn("'with await lock' is deprecated "
-                      "use 'async with lock' instead",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "'with await lock' is deprecated " "use 'async with lock' instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # To make "with await lock" work.
         return self.__acquire_ctx().__await__()
 
@@ -162,10 +165,10 @@ class Lock(_ContextManagerMixin):
 
     def __repr__(self):
         res = super().__repr__()
-        extra = 'locked' if self._locked else 'unlocked'
+        extra = "locked" if self._locked else "unlocked"
         if self._waiters:
-            extra = f'{extra}, waiters:{len(self._waiters)}'
-        return f'<{res[1:-1]} [{extra}]>'
+            extra = f"{extra}, waiters:{len(self._waiters)}"
+        return f"<{res[1:-1]} [{extra}]>"
 
     def locked(self):
         """Return True if lock is acquired."""
@@ -215,7 +218,7 @@ class Lock(_ContextManagerMixin):
             self._locked = False
             self._wake_up_first()
         else:
-            raise RuntimeError('Lock is not acquired.')
+            raise RuntimeError("Lock is not acquired.")
 
     def _wake_up_first(self):
         """Wake up the first waiter if it isn't done."""
@@ -250,10 +253,10 @@ class Event:
 
     def __repr__(self):
         res = super().__repr__()
-        extra = 'set' if self._value else 'unset'
+        extra = "set" if self._value else "unset"
         if self._waiters:
-            extra = f'{extra}, waiters:{len(self._waiters)}'
-        return f'<{res[1:-1]} [{extra}]>'
+            extra = f"{extra}, waiters:{len(self._waiters)}"
+        return f"<{res[1:-1]} [{extra}]>"
 
     def is_set(self):
         """Return True if and only if the internal flag is true."""
@@ -327,10 +330,10 @@ class Condition(_ContextManagerMixin):
 
     def __repr__(self):
         res = super().__repr__()
-        extra = 'locked' if self.locked() else 'unlocked'
+        extra = "locked" if self.locked() else "unlocked"
         if self._waiters:
-            extra = f'{extra}, waiters:{len(self._waiters)}'
-        return f'<{res[1:-1]} [{extra}]>'
+            extra = f"{extra}, waiters:{len(self._waiters)}"
+        return f"<{res[1:-1]} [{extra}]>"
 
     async def wait(self):
         """Wait until notified.
@@ -344,7 +347,7 @@ class Condition(_ContextManagerMixin):
         awakened, it re-acquires the lock and returns True.
         """
         if not self.locked():
-            raise RuntimeError('cannot wait on un-acquired lock')
+            raise RuntimeError("cannot wait on un-acquired lock")
 
         self.release()
         try:
@@ -395,7 +398,7 @@ class Condition(_ContextManagerMixin):
         not release the lock, its caller should.
         """
         if not self.locked():
-            raise RuntimeError('cannot notify on un-acquired lock')
+            raise RuntimeError("cannot notify on un-acquired lock")
 
         idx = 0
         for fut in self._waiters:
@@ -442,10 +445,10 @@ class Semaphore(_ContextManagerMixin):
 
     def __repr__(self):
         res = super().__repr__()
-        extra = 'locked' if self.locked() else f'unlocked, value:{self._value}'
+        extra = "locked" if self.locked() else f"unlocked, value:{self._value}"
         if self._waiters:
-            extra = f'{extra}, waiters:{len(self._waiters)}'
-        return f'<{res[1:-1]} [{extra}]>'
+            extra = f"{extra}, waiters:{len(self._waiters)}"
+        return f"<{res[1:-1]} [{extra}]>"
 
     def _wake_up_next(self):
         while self._waiters:
@@ -503,5 +506,5 @@ class BoundedSemaphore(Semaphore):
 
     def release(self):
         if self._value >= self._bound_value:
-            raise ValueError('BoundedSemaphore released too many times')
+            raise ValueError("BoundedSemaphore released too many times")
         super().release()

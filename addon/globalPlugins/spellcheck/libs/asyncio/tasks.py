@@ -1,12 +1,25 @@
 """Support for tasks, coroutines and the scheduler."""
 
 __all__ = (
-    'Task', 'create_task',
-    'FIRST_COMPLETED', 'FIRST_EXCEPTION', 'ALL_COMPLETED',
-    'wait', 'wait_for', 'as_completed', 'sleep',
-    'gather', 'shield', 'ensure_future', 'run_coroutine_threadsafe',
-    'current_task', 'all_tasks',
-    '_register_task', '_unregister_task', '_enter_task', '_leave_task',
+    "Task",
+    "create_task",
+    "FIRST_COMPLETED",
+    "FIRST_EXCEPTION",
+    "ALL_COMPLETED",
+    "wait",
+    "wait_for",
+    "as_completed",
+    "sleep",
+    "gather",
+    "shield",
+    "ensure_future",
+    "run_coroutine_threadsafe",
+    "current_task",
+    "all_tasks",
+    "_register_task",
+    "_unregister_task",
+    "_enter_task",
+    "_leave_task",
 )
 
 import concurrent.futures
@@ -50,8 +63,7 @@ def all_tasks(loop=None):
                 raise
         else:
             break
-    return {t for t in tasks
-            if futures._get_loop(t) is loop and not t.done()}
+    return {t for t in tasks if futures._get_loop(t) is loop and not t.done()}
 
 
 def _all_tasks_compat(loop=None):
@@ -79,7 +91,7 @@ def _all_tasks_compat(loop=None):
 
 
 class Task(futures._PyFuture):  # Inherit Python Task implementation
-                                # from a Python Future implementation.
+    # from a Python Future implementation.
 
     """A coroutine wrapped in a Future."""
 
@@ -104,10 +116,11 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
 
         None is returned when called not in the context of a Task.
         """
-        warnings.warn("Task.current_task() is deprecated, "
-                      "use asyncio.current_task() instead",
-                      PendingDeprecationWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "Task.current_task() is deprecated, " "use asyncio.current_task() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         if loop is None:
             loop = events.get_event_loop()
         return current_task(loop)
@@ -118,10 +131,11 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
 
         By default all tasks for the current event loop are returned.
         """
-        warnings.warn("Task.all_tasks() is deprecated, "
-                      "use asyncio.all_tasks() instead",
-                      PendingDeprecationWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "Task.all_tasks() is deprecated, " "use asyncio.all_tasks() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         return _all_tasks_compat(loop)
 
     def __init__(self, coro, *, loop=None):
@@ -145,11 +159,11 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
     def __del__(self):
         if self._state == futures._PENDING and self._log_destroy_pending:
             context = {
-                'task': self,
-                'message': 'Task was destroyed but it is pending!',
+                "task": self,
+                "message": "Task was destroyed but it is pending!",
             }
             if self._source_traceback:
-                context['source_traceback'] = self._source_traceback
+                context["source_traceback"] = self._source_traceback
             self._loop.call_exception_handler(context)
         super().__del__()
 
@@ -157,10 +171,10 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
         return base_tasks._task_repr_info(self)
 
     def set_result(self, result):
-        raise RuntimeError('Task does not support set_result operation')
+        raise RuntimeError("Task does not support set_result operation")
 
     def set_exception(self, exception):
-        raise RuntimeError('Task does not support set_exception operation')
+        raise RuntimeError("Task does not support set_exception operation")
 
     def get_stack(self, *, limit=None):
         """Return the list of stack frames for this task's coroutine.
@@ -231,8 +245,7 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
 
     def __step(self, exc=None):
         if self.done():
-            raise futures.InvalidStateError(
-                f'_step(): already done: {self!r}, {exc!r}')
+            raise futures.InvalidStateError(f"_step(): already done: {self!r}, {exc!r}")
         if self._must_cancel:
             if not isinstance(exc, futures.CancelledError):
                 exc = futures.CancelledError()
@@ -264,35 +277,34 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
             super().set_exception(exc)
             raise
         else:
-            blocking = getattr(result, '_asyncio_future_blocking', None)
+            blocking = getattr(result, "_asyncio_future_blocking", None)
             if blocking is not None:
                 # Yielded Future must come from Future.__iter__().
                 if futures._get_loop(result) is not self._loop:
                     new_exc = RuntimeError(
-                        f'Task {self!r} got Future '
-                        f'{result!r} attached to a different loop')
-                    self._loop.call_soon(
-                        self.__step, new_exc, context=self._context)
+                        f"Task {self!r} got Future "
+                        f"{result!r} attached to a different loop"
+                    )
+                    self._loop.call_soon(self.__step, new_exc, context=self._context)
                 elif blocking:
                     if result is self:
-                        new_exc = RuntimeError(
-                            f'Task cannot await on itself: {self!r}')
+                        new_exc = RuntimeError(f"Task cannot await on itself: {self!r}")
                         self._loop.call_soon(
-                            self.__step, new_exc, context=self._context)
+                            self.__step, new_exc, context=self._context
+                        )
                     else:
                         result._asyncio_future_blocking = False
-                        result.add_done_callback(
-                            self.__wakeup, context=self._context)
+                        result.add_done_callback(self.__wakeup, context=self._context)
                         self._fut_waiter = result
                         if self._must_cancel:
                             if self._fut_waiter.cancel():
                                 self._must_cancel = False
                 else:
                     new_exc = RuntimeError(
-                        f'yield was used instead of yield from '
-                        f'in task {self!r} with {result!r}')
-                    self._loop.call_soon(
-                        self.__step, new_exc, context=self._context)
+                        f"yield was used instead of yield from "
+                        f"in task {self!r} with {result!r}"
+                    )
+                    self._loop.call_soon(self.__step, new_exc, context=self._context)
 
             elif result is None:
                 # Bare yield relinquishes control for one event loop iteration.
@@ -300,15 +312,14 @@ class Task(futures._PyFuture):  # Inherit Python Task implementation
             elif inspect.isgenerator(result):
                 # Yielding a generator is just wrong.
                 new_exc = RuntimeError(
-                    f'yield was used instead of yield from for '
-                    f'generator in task {self!r} with {result!r}')
-                self._loop.call_soon(
-                    self.__step, new_exc, context=self._context)
+                    f"yield was used instead of yield from for "
+                    f"generator in task {self!r} with {result!r}"
+                )
+                self._loop.call_soon(self.__step, new_exc, context=self._context)
             else:
                 # Yielding something else is an error.
-                new_exc = RuntimeError(f'Task got bad yield: {result!r}')
-                self._loop.call_soon(
-                    self.__step, new_exc, context=self._context)
+                new_exc = RuntimeError(f"Task got bad yield: {result!r}")
+                self._loop.call_soon(self.__step, new_exc, context=self._context)
         finally:
             _leave_task(self._loop, self)
             self = None  # Needed to break cycles when an exception occurs.
@@ -377,9 +388,9 @@ async def wait(fs, *, loop=None, timeout=None, return_when=ALL_COMPLETED):
     if futures.isfuture(fs) or coroutines.iscoroutine(fs):
         raise TypeError(f"expect a list of futures, not {type(fs).__name__}")
     if not fs:
-        raise ValueError('Set of coroutines/Futures is empty.')
+        raise ValueError("Set of coroutines/Futures is empty.")
     if return_when not in (FIRST_COMPLETED, FIRST_EXCEPTION, ALL_COMPLETED):
-        raise ValueError(f'Invalid return_when value: {return_when}')
+        raise ValueError(f"Invalid return_when value: {return_when}")
 
     if loop is None:
         loop = events.get_event_loop()
@@ -456,7 +467,7 @@ async def _wait(fs, timeout, return_when, loop):
 
     The fs argument must be a collection of Futures.
     """
-    assert fs, 'Set of Futures is empty.'
+    assert fs, "Set of Futures is empty."
     waiter = loop.create_future()
     timeout_handle = None
     if timeout is not None:
@@ -466,10 +477,12 @@ async def _wait(fs, timeout, return_when, loop):
     def _on_completion(f):
         nonlocal counter
         counter -= 1
-        if (counter <= 0 or
-            return_when == FIRST_COMPLETED or
-            return_when == FIRST_EXCEPTION and (not f.cancelled() and
-                                                f.exception() is not None)):
+        if (
+            counter <= 0
+            or return_when == FIRST_COMPLETED
+            or return_when == FIRST_EXCEPTION
+            and (not f.cancelled() and f.exception() is not None)
+        ):
             if timeout_handle is not None:
                 timeout_handle.cancel()
             if not waiter.done():
@@ -535,6 +548,7 @@ def as_completed(fs, *, loop=None, timeout=None):
     loop = loop if loop is not None else events.get_event_loop()
     todo = {ensure_future(f, loop=loop) for f in set(fs)}
     from .queues import Queue  # Import here to avoid circular import problem.
+
     done = Queue(loop=loop)
     timeout_handle = None
 
@@ -588,9 +602,7 @@ async def sleep(delay, result=None, *, loop=None):
     if loop is None:
         loop = events.get_event_loop()
     future = loop.create_future()
-    h = loop.call_later(delay,
-                        futures._set_result_unless_cancelled,
-                        future, result)
+    h = loop.call_later(delay, futures._set_result_unless_cancelled, future, result)
     try:
         return await future
     finally:
@@ -611,13 +623,12 @@ def ensure_future(coro_or_future, *, loop=None):
         return task
     elif futures.isfuture(coro_or_future):
         if loop is not None and loop is not futures._get_loop(coro_or_future):
-            raise ValueError('loop argument must agree with Future')
+            raise ValueError("loop argument must agree with Future")
         return coro_or_future
     elif inspect.isawaitable(coro_or_future):
         return ensure_future(_wrap_awaitable(coro_or_future), loop=loop)
     else:
-        raise TypeError('An asyncio.Future, a coroutine or an awaitable is '
-                        'required')
+        raise TypeError("An asyncio.Future, a coroutine or an awaitable is " "required")
 
 
 @coroutine
@@ -816,7 +827,6 @@ def shield(arg, *, loop=None):
             else:
                 outer.set_result(inner.result())
 
-
     def _outer_done_callback(outer):
         if not inner.done():
             inner.remove_done_callback(_inner_done_callback)
@@ -832,7 +842,7 @@ def run_coroutine_threadsafe(coro, loop):
     Return a concurrent.futures.Future to access the result.
     """
     if not coroutines.iscoroutine(coro):
-        raise TypeError('A coroutine object is required')
+        raise TypeError("A coroutine object is required")
     future = concurrent.futures.Future()
 
     def callback():
@@ -863,16 +873,20 @@ def _register_task(task):
 def _enter_task(loop, task):
     current_task = _current_tasks.get(loop)
     if current_task is not None:
-        raise RuntimeError(f"Cannot enter into task {task!r} while another "
-                           f"task {current_task!r} is being executed.")
+        raise RuntimeError(
+            f"Cannot enter into task {task!r} while another "
+            f"task {current_task!r} is being executed."
+        )
     _current_tasks[loop] = task
 
 
 def _leave_task(loop, task):
     current_task = _current_tasks.get(loop)
     if current_task is not task:
-        raise RuntimeError(f"Leaving task {task!r} does not match "
-                           f"the current task {current_task!r}.")
+        raise RuntimeError(
+            f"Leaving task {task!r} does not match "
+            f"the current task {current_task!r}."
+        )
     del _current_tasks[loop]
 
 
@@ -888,9 +902,14 @@ _py_leave_task = _leave_task
 
 
 try:
-    from _asyncio import (_register_task, _unregister_task,
-                          _enter_task, _leave_task,
-                          _all_tasks, _current_tasks)
+    from _asyncio import (
+        _register_task,
+        _unregister_task,
+        _enter_task,
+        _leave_task,
+        _all_tasks,
+        _current_tasks,
+    )
 except ImportError:
     pass
 else:

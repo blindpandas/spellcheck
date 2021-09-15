@@ -13,13 +13,13 @@ from charset_normalizer.utils import iana_name, is_multi_byte_encoding, unicode_
 
 class CharsetMatch:
     def __init__(
-            self,
-            payload: bytes,
-            guessed_encoding: str,
-            mean_mess_ratio: float,
-            has_sig_or_bom: bool,
-            languages: "CoherenceMatches",
-            decoded_payload: Optional[str] = None
+        self,
+        payload: bytes,
+        guessed_encoding: str,
+        mean_mess_ratio: float,
+        has_sig_or_bom: bool,
+        languages: "CoherenceMatches",
+        decoded_payload: Optional[str] = None,
     ):
         self._payload = payload  # type: bytes
 
@@ -30,7 +30,7 @@ class CharsetMatch:
         self._unicode_ranges = None  # type: Optional[List[str]]
 
         self._leaves = []  # type: List[CharsetMatch]
-        self._mean_coherence_ratio = 0.  # type: float
+        self._mean_coherence_ratio = 0.0  # type: float
 
         self._output_payload = None  # type: Optional[bytes]
         self._output_encoding = None  # type: Optional[str]
@@ -39,7 +39,11 @@ class CharsetMatch:
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, CharsetMatch):
-            raise TypeError('__eq__ cannot be invoked on {} and {}.'.format(str(other.__class__), str(self.__class__)))
+            raise TypeError(
+                "__eq__ cannot be invoked on {} and {}.".format(
+                    str(other.__class__), str(self.__class__)
+                )
+            )
         return self.encoding == other.encoding and self.fingerprint == other.fingerprint
 
     def __lt__(self, other) -> bool:
@@ -64,11 +68,11 @@ class CharsetMatch:
         Use with caution, this can be very slow.
         Notice: Will be removed in 3.0
         """
-        warnings.warn("chaos_secondary_pass is deprecated and will be removed in 3.0", DeprecationWarning)
-        return mess_ratio(
-            str(self),
-            1.
+        warnings.warn(
+            "chaos_secondary_pass is deprecated and will be removed in 3.0",
+            DeprecationWarning,
         )
+        return mess_ratio(str(self), 1.0)
 
     @property
     def coherence_non_latin(self) -> float:
@@ -76,8 +80,11 @@ class CharsetMatch:
         Coherence ratio on the first non-latin language detected if ANY.
         Notice: Will be removed in 3.0
         """
-        warnings.warn("coherence_non_latin is deprecated and will be removed in 3.0", DeprecationWarning)
-        return 0.
+        warnings.warn(
+            "coherence_non_latin is deprecated and will be removed in 3.0",
+            DeprecationWarning,
+        )
+        return 0.0
 
     @property
     def w_counter(self) -> Counter:
@@ -85,9 +92,11 @@ class CharsetMatch:
         Word counter instance on decoded text.
         Notice: Will be removed in 3.0
         """
-        warnings.warn("w_counter is deprecated and will be removed in 3.0", DeprecationWarning)
-        not_printable_pattern = re_compile(r'[0-9\W\n\r\t]+')
-        string_printable_only = sub(not_printable_pattern, ' ', str(self).lower())
+        warnings.warn(
+            "w_counter is deprecated and will be removed in 3.0", DeprecationWarning
+        )
+        not_printable_pattern = re_compile(r"[0-9\W\n\r\t]+")
+        string_printable_only = sub(not_printable_pattern, " ", str(self).lower())
 
         return Counter(string_printable_only.split())
 
@@ -102,7 +111,11 @@ class CharsetMatch:
 
     def add_submatch(self, other: "CharsetMatch") -> None:
         if not isinstance(other, CharsetMatch) or other == self:
-            raise ValueError("Unable to add instance <{}> as a submatch of a CharsetMatch".format(other.__class__))
+            raise ValueError(
+                "Unable to add instance <{}> as a submatch of a CharsetMatch".format(
+                    other.__class__
+                )
+            )
 
         other._string = None  # Unload RAM usage; dirty trick.
         self._leaves.append(other)
@@ -155,7 +168,11 @@ class CharsetMatch:
             # doing it there to avoid circular import
             from charset_normalizer.cd import mb_encoding_languages, encoding_languages
 
-            languages = mb_encoding_languages(self.encoding) if is_multi_byte_encoding(self.encoding) else encoding_languages(self.encoding)
+            languages = (
+                mb_encoding_languages(self.encoding)
+                if is_multi_byte_encoding(self.encoding)
+                else encoding_languages(self.encoding)
+            )
 
             if len(languages) == 0 or "Latin Based" in languages:
                 return "Unknown"
@@ -171,7 +188,7 @@ class CharsetMatch:
     @property
     def coherence(self) -> float:
         if not self._languages:
-            return 0.
+            return 0.0
         return self._languages[0][1]
 
     @property
@@ -205,9 +222,7 @@ class CharsetMatch:
         for character in str(self):
             detected_range = unicode_range(character)  # type: Optional[str]
             if detected_range:
-                detected_ranges.add(
-                    unicode_range(character)
-                )
+                detected_ranges.add(unicode_range(character))
         self._unicode_ranges = sorted(list(detected_ranges))
         return self._unicode_ranges
 
@@ -256,6 +271,7 @@ class CharsetMatches:
     Container with every CharsetMatch items ordered by default from most probable to the less one.
     Act like a list(iterable) but does not implements all related methods.
     """
+
     def __init__(self, results: List[CharsetMatch] = None):
         self._results = sorted(results) if results else []  # type: List[CharsetMatch]
 
@@ -286,7 +302,11 @@ class CharsetMatches:
         Can be inserted as a submatch.
         """
         if not isinstance(item, CharsetMatch):
-            raise ValueError("Cannot append instance '{}' to CharsetMatches".format(str(item.__class__)))
+            raise ValueError(
+                "Cannot append instance '{}' to CharsetMatches".format(
+                    str(item.__class__)
+                )
+            )
         # We should disable the submatch factoring when the input file is too heavy (conserve RAM usage)
         if len(item.raw) <= TOO_BIG_SEQUENCE:
             for match in self._results:
@@ -316,8 +336,20 @@ CoherenceMatches = List[CoherenceMatch]
 
 
 class CliDetectionResult:
-
-    def __init__(self, path: str, encoding: str, encoding_aliases: List[str], alternative_encodings: List[str], language: str, alphabets: List[str], has_sig_or_bom: bool, chaos: float, coherence: float, unicode_path: Optional[str], is_preferred: bool):
+    def __init__(
+        self,
+        path: str,
+        encoding: str,
+        encoding_aliases: List[str],
+        alternative_encodings: List[str],
+        language: str,
+        alphabets: List[str],
+        has_sig_or_bom: bool,
+        chaos: float,
+        coherence: float,
+        unicode_path: Optional[str],
+        is_preferred: bool,
+    ):
         self.path = path  # type: str
         self.unicode_path = unicode_path  # type: Optional[str]
         self.encoding = encoding  # type: str
@@ -333,25 +365,21 @@ class CliDetectionResult:
     @property
     def __dict__(self):
         return {
-            'path': self.path,
-            'encoding': self.encoding,
-            'encoding_aliases': self.encoding_aliases,
-            'alternative_encodings': self.alternative_encodings,
-            'language': self.language,
-            'alphabets': self.alphabets,
-            'has_sig_or_bom': self.has_sig_or_bom,
-            'chaos': self.chaos,
-            'coherence': self.coherence,
-            'unicode_path': self.unicode_path,
-            'is_preferred': self.is_preferred
+            "path": self.path,
+            "encoding": self.encoding,
+            "encoding_aliases": self.encoding_aliases,
+            "alternative_encodings": self.alternative_encodings,
+            "language": self.language,
+            "alphabets": self.alphabets,
+            "has_sig_or_bom": self.has_sig_or_bom,
+            "chaos": self.chaos,
+            "coherence": self.coherence,
+            "unicode_path": self.unicode_path,
+            "is_preferred": self.is_preferred,
         }
 
     def to_json(self) -> str:
-        return dumps(
-            self.__dict__,
-            ensure_ascii=True,
-            indent=4
-        )
+        return dumps(self.__dict__, ensure_ascii=True, indent=4)
 
 
 CharsetNormalizerMatch = CharsetMatch

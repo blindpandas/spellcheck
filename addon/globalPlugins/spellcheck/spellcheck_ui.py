@@ -14,8 +14,11 @@ import eventHandler
 from enum import Enum, auto
 from contextlib import suppress
 from NVDAObjects import NVDAObject
-from NVDAObjects.behaviors import EditableTextWithAutoSelectDetection, EditableTextWithSuggestions
-from keyboardHandler import  KeyboardInputGesture
+from NVDAObjects.behaviors import (
+    EditableTextWithAutoSelectDetection,
+    EditableTextWithSuggestions,
+)
+from keyboardHandler import KeyboardInputGesture
 from scriptHandler import script
 from logHandler import log
 from .helpers import import_bundled_library
@@ -23,14 +26,19 @@ from .helpers import import_bundled_library
 
 with import_bundled_library():
     from cached_property import cached_property
-    from enchant .checker import SpellChecker
+    from enchant.checker import SpellChecker
 
 
-# This should be set to Tru in the final release 
+# This should be set to Tru in the final release
 # It prevent any key strokes from reaching the application
 # Thereby avoiding any unintentional edits to the underlying text control
 CAPTURE_KEYS_WHILE_IN_FOCUS = False
 PASTE_GESTURE = KeyboardInputGesture.fromName("control+v")
+
+
+import addonHandler
+
+addonHandler.initTranslation()
 
 
 class UserChoiceType(Enum):
@@ -38,10 +46,10 @@ class UserChoiceType(Enum):
     We use these flags to determine and store the type of
     item the user has chosen from the suggestions menu.
     """
+
     SUGGESTION = auto()
-    NO_SUGGESTION = auto()
-    IGNORE_ONCE = auto()
-    IGNORE_ALL = auto()
+    NO_ACTION = auto()
+    IGNORE_FOR_THIS_SESSION = auto()
     ADD_TO_PERSONAL_DICTIONARY = auto()
 
 
@@ -95,6 +103,10 @@ class ItemContainerMixin:
     def get_current_item(self):
         return self.get_item(self._current_index)
 
+    def remove_item(self, item):
+        item_index = self.index_of(item)
+        self.items.pop(item_index)
+
     def go_to_next(self):
         item = self.get_item(self._current_index + 1)
         if item is not None:
@@ -122,9 +134,15 @@ class ItemContainerMixin:
         return item
 
 
-class FakeEditableNVDAObject(KeyboardNavigableNVDAObjectMixin, EditableTextWithSuggestions, NVDAObject):
+class FakeEditableNVDAObject(
+    KeyboardNavigableNVDAObjectMixin, EditableTextWithSuggestions, NVDAObject
+):
     role = controlTypes.ROLE_EDITABLETEXT
-    states = {controlTypes.STATE_EDITABLE, controlTypes.STATE_FOCUSABLE, controlTypes.STATE_FOCUSED,}
+    states = {
+        controlTypes.STATE_EDITABLE,
+        controlTypes.STATE_FOCUSABLE,
+        controlTypes.STATE_FOCUSED,
+    }
     processID = os.getpid()
 
 
@@ -160,7 +178,6 @@ class MenuItemObject(KeyboardNavigableNVDAObjectMixin, NVDAObject):
 
 
 class MisspellingMenuItemObject(MenuItemObject):
-
     def __init__(self, lang_dict, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lang_dict = lang_dict
@@ -175,9 +192,13 @@ class MisspellingMenuItemObject(MenuItemObject):
     def get_replacement_info(self):
         if self._user_choice is not None:
             choice_type = self._user_choice.choice_type
-            choice_value = None if choice_type is not UserChoiceType.SUGGESTION else self._user_choice.name
+            choice_value = (
+                None
+                if choice_type is not UserChoiceType.SUGGESTION
+                else self._user_choice.name
+            )
         else:
-            choice_type = UserChoiceType.IGNORE_ONCE
+            choice_type = UserChoiceType.NO_ACTION
             choice_value = None
         return (self.original_misspelling, choice_type, choice_value)
 
@@ -186,14 +207,12 @@ class MisspellingMenuItemObject(MenuItemObject):
         if choice.choice_type is UserChoiceType.SUGGESTION:
             # translators: appears between the misspelled word and the selected suggestion by the user.
             desc = _(f"accepted: {choice.name}")
-        elif choice.choice_type is UserChoiceType.IGNORE_ONCE:
-            #translators: appears in the spelling error menu if a user chooses to ignore the error once.
-            desc = "Ignored once"
-        elif choice.choice_type is UserChoiceType.IGNORE_ALL:
-            #translators: appears in the spelling error menu if a user chooses to ignore all appearance of that word.
-            desc = _("Ignored all")
+        elif choice.choice_type is UserChoiceType.IGNORE_FOR_THIS_SESSION:
+            eventHandler.queueEvent("suggestionsClosed", FakeEditableNVDAObject())
+            self.parent.ignore_for_this_session(self)
+            return
         elif choice.choice_type is UserChoiceType.ADD_TO_PERSONAL_DICTIONARY:
-            #translators: appears in the misspelled words menu when a user chooses to add the erroneous word to the personal dictionary.
+            # translators: appears in the misspelled words menu when a user chooses to add the erroneous word to the personal dictionary.
             desc = _("Added to personal dictionary")
         else:
             desc = self.description
@@ -204,7 +223,7 @@ class MisspellingMenuItemObject(MenuItemObject):
         eventHandler.queueEvent("suggestionsClosed", FakeEditableNVDAObject())
         eventHandler.queueEvent("gainFocus", self.parent)
 
-    @property
+    @cached_property
     def suggestions_menu(self):
         self._suggestions_menu = SuggestionsMenu(name="Suggestions")
         common_kwargs = {
@@ -213,41 +232,37 @@ class MisspellingMenuItemObject(MenuItemObject):
         }
         menu_items = [
             SuggestionMenuItemObject(
-                choice_type=UserChoiceType.SUGGESTION,
-                name=item,
-                **common_kwargs
+                choice_type=UserChoiceType.SUGGESTION, name=item, **common_kwargs
             )
             for item in self.suggestions
         ]
         if not menu_items:
             # No suggestions
             no_suggestions_item = SuggestionMenuItemObject(
-                choice_type=UserChoiceType.NO_SUGGESTION,
+                choice_type=UserChoiceType.NO_ACTION,
                 name="No Suggestions",
-                **common_kwargs
+                **common_kwargs,
             )
-            no_suggestions_item.states = {controlTypes.STATE_UNAVAILABLE,}
+            no_suggestions_item.states = {
+                controlTypes.STATE_UNAVAILABLE,
+            }
             menu_items.append(no_suggestions_item)
-        menu_items.extend([
-            SuggestionMenuItemObject(
-                choice_type=UserChoiceType.IGNORE_ONCE,
-                #translators: name of the option in the suggestion menu
-                name=_("Ignore once"),
-                **common_kwargs
-            ),
-            SuggestionMenuItemObject(
-                choice_type=UserChoiceType.IGNORE_ALL,
-                #translators: name of the option in the suggestion menu.
-                name=_("Ignore all"),
-                **common_kwargs
-            ),
-            SuggestionMenuItemObject(
-                choice_type=UserChoiceType.ADD_TO_PERSONAL_DICTIONARY,
-                #translators: name of the option in the suggestion menu.
-                name=_("Add to dictionary"),
-                **common_kwargs
-            ),
-        ])
+        menu_items.extend(
+            [
+                SuggestionMenuItemObject(
+                    choice_type=UserChoiceType.IGNORE_FOR_THIS_SESSION,
+                    # translators: name of the option in the suggestion menu
+                    name=_("Ignore for this session"),
+                    **common_kwargs,
+                ),
+                SuggestionMenuItemObject(
+                    choice_type=UserChoiceType.ADD_TO_PERSONAL_DICTIONARY,
+                    # translators: name of the option in the suggestion menu.
+                    name=_("Add to dictionary"),
+                    **common_kwargs,
+                ),
+            ]
+        )
         self._suggestions_menu.init_container_state(
             menu_items,
             on_top_edge=self.back_to_misspelling,
@@ -331,11 +346,9 @@ class MenuObject(KeyboardNavigableNVDAObjectMixin, ItemContainerMixin, NVDAObjec
 
 
 class SuggestionsMenu(MenuObject):
-
     def close_menu(self):
         eventHandler.queueEvent("suggestionsClosed", FakeEditableNVDAObject())
         eventHandler.queueEvent("gainFocus", self.parent.parent)
-        
 
 
 class SpellCheckMenu(MenuObject):
@@ -347,7 +360,9 @@ class SpellCheckMenu(MenuObject):
         self.text_to_process = text_to_process
         spellchecker = self.make_spellchecker(self.language_tag, self.text_to_process)
         misspelling_menu_items = [
-            MisspellingMenuItemObject(parent=self, name=item.word, lang_dict=spellchecker.dict)
+            MisspellingMenuItemObject(
+                parent=self, name=item.word, lang_dict=spellchecker.dict
+            )
             for item in spellchecker
         ]
         self.init_container_state(
@@ -355,6 +370,8 @@ class SpellCheckMenu(MenuObject):
             # If you did a for-loop after this line, you'll get nothing
             items=misspelling_menu_items
         )
+        # A list of ignored words in this session
+        self._ignored_words = []
 
     def make_spellchecker(self, lang, text):
         spellchecker = SpellChecker(lang)
@@ -364,6 +381,8 @@ class SpellCheckMenu(MenuObject):
     def get_corrected_text(self):
         # We should reinitialize the spellChecker class with the same text we used to initialize it in the first place
         spellchecker = self.make_spellchecker(self.language_tag, self.text_to_process)
+        for ignored_word in self._ignored_words:
+            spellchecker.ignore_always(ignored_word)
         replacement_info = [misspelling.get_replacement_info() for misspelling in self]
         for (chk, replacement_info) in zip(spellchecker, replacement_info):
             misspelling, choice_type, choice_value = replacement_info
@@ -372,16 +391,29 @@ class SpellCheckMenu(MenuObject):
                 tones.beep(400, 400)
             if choice_type is UserChoiceType.SUGGESTION:
                 chk.replace(choice_value)
-            elif choice_type is UserChoiceType.IGNORE_ONCE:
-                chk.replace(misspelling)
-            elif choice_type is UserChoiceType.IGNORE_ALL:
-                chk.ignore_always()
             elif choice_type is UserChoiceType.ADD_TO_PERSONAL_DICTIONARY:
                 chk.add()
         return spellchecker.get_text()
 
-    def close_menu(self):
-        super().close_menu()
+    def ignore_for_this_session(self, item):
+        misspelling = item.original_misspelling
+        self._ignored_words.append(misspelling)
+        current_focus_index = self.index_of(item)
+        items_to_remove = [
+            menu_item
+            for menu_item in self
+            if menu_item.original_misspelling == misspelling
+        ]
+        for rmv_item in items_to_remove:
+            self.remove_item(rmv_item)
+        if self:
+            self.set_current(0)
+            eventHandler.queueEvent("gainFocus", self)
+        else:
+            queueHandler.queueFunction(
+                queueHandler.eventQueue, ui.message, _("No misspellings")
+            )
+            self.close_menu()
 
     def copy_to_clipboard(self):
         api.copyToClip(self.get_corrected_text(), True)
@@ -395,14 +427,33 @@ class SpellCheckMenu(MenuObject):
         is_readonly = controlTypes.STATE_READONLY in self.parent.states
         if is_readonly:
             # translators: spoken message
-            queueHandler.queueFunction(queueHandler.eventQueue, ui.message, _("Can not replace text, the control is read only"))
-            queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
-            queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
+            queueHandler.queueFunction(
+                queueHandler.eventQueue,
+                ui.message,
+                _("Can not replace text, the control is read only"),
+            )
+            queueHandler.queueFunction(
+                queueHandler.eventQueue, api.setFocusObject, self.parent
+            )
+            queueHandler.queueFunction(
+                queueHandler.eventQueue,
+                speech.speakObject,
+                self.parent,
+                controlTypes.OutputReason.FOCUS,
+            )
         else:
             api.copyToClip(self.get_corrected_text())
-            queueHandler.queueFunction(queueHandler.eventQueue, api.setFocusObject, self.parent)
+            queueHandler.queueFunction(
+                queueHandler.eventQueue, api.setFocusObject, self.parent
+            )
             queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
-            queueHandler.queueFunction(queueHandler.eventQueue, speech.speakObject, self.parent, controlTypes.OutputReason.FOCUS)
+            queueHandler.queueFunction(
+                queueHandler.eventQueue,
+                speech.speakObject,
+                self.parent,
+                controlTypes.OutputReason.FOCUS,
+            )
             if old_clipboard_text is not None:
-                queueHandler.queueFunction(queueHandler.eventQueue, api.copyToClip, old_clipboard_text)
-
+                queueHandler.queueFunction(
+                    queueHandler.eventQueue, api.copyToClip, old_clipboard_text
+                )

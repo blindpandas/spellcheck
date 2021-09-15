@@ -15,11 +15,13 @@ class TaskInfo:
     :ivar ~collections.abc.Coroutine coro: the coroutine object of the task
     """
 
-    __slots__ = '_name', 'id', 'parent_id', 'name', 'coro'
+    __slots__ = "_name", "id", "parent_id", "name", "coro"
 
-    def __init__(self, id: int, parent_id: Optional[int], name: Optional[str], coro: Coroutine):
+    def __init__(
+        self, id: int, parent_id: Optional[int], name: Optional[str], coro: Coroutine
+    ):
         func = get_current_task
-        self._name = f'{func.__module__}.{func.__qualname__}'
+        self._name = f"{func.__module__}.{func.__qualname__}"
         self.id = id
         self.parent_id = parent_id
         self.name = name
@@ -35,7 +37,7 @@ class TaskInfo:
         return hash(self.id)
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(id={self.id!r}, name={self.name!r})'
+        return f"{self.__class__.__name__}(id={self.id!r}, name={self.name!r})"
 
     def __await__(self) -> Generator[None, None, "TaskInfo"]:
         _warn_deprecation(self)
@@ -44,7 +46,7 @@ class TaskInfo:
 
         return self
 
-    def _unwrap(self) -> 'TaskInfo':
+    def _unwrap(self) -> "TaskInfo":
         return self
 
 

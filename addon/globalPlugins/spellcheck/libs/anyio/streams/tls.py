@@ -5,15 +5,21 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 
-from .. import BrokenResourceError, EndOfStream, aclose_forcefully, get_cancelled_exc_class
+from .. import (
+    BrokenResourceError,
+    EndOfStream,
+    aclose_forcefully,
+    get_cancelled_exc_class,
+)
 from .._core._typedattr import TypedAttributeSet, typed_attribute
 from ..abc import AnyByteStream, ByteStream, Listener, TaskGroup
 
-T_Retval = TypeVar('T_Retval')
+T_Retval = TypeVar("T_Retval")
 
 
 class TLSAttribute(TypedAttributeSet):
     """Contains Transport Layer Security related attributes."""
+
     #: the selected ALPN protocol
     alpn_protocol: Optional[str] = typed_attribute()
     #: the channel binding for type ``tls-unique``
@@ -49,6 +55,7 @@ class TLSStream(ByteStream):
     :var AnyByteStream transport_stream: the wrapped stream
 
     """
+
     transport_stream: AnyByteStream
     standard_compatible: bool
     _ssl_object: ssl.SSLObject
@@ -56,9 +63,15 @@ class TLSStream(ByteStream):
     _write_bio: ssl.MemoryBIO
 
     @classmethod
-    async def wrap(cls, transport_stream: AnyByteStream, *, server_side: Optional[bool] = None,
-                   hostname: Optional[str] = None, ssl_context: Optional[ssl.SSLContext] = None,
-                   standard_compatible: bool = True) -> 'TLSStream':
+    async def wrap(
+        cls,
+        transport_stream: AnyByteStream,
+        *,
+        server_side: Optional[bool] = None,
+        hostname: Optional[str] = None,
+        ssl_context: Optional[ssl.SSLContext] = None,
+        standard_compatible: bool = True,
+    ) -> "TLSStream":
         """
         Wrap an existing stream with Transport Layer Security.
 
@@ -81,16 +94,23 @@ class TLSStream(ByteStream):
             server_side = not hostname
 
         if not ssl_context:
-            purpose = ssl.Purpose.CLIENT_AUTH if server_side else ssl.Purpose.SERVER_AUTH
+            purpose = (
+                ssl.Purpose.CLIENT_AUTH if server_side else ssl.Purpose.SERVER_AUTH
+            )
             ssl_context = ssl.create_default_context(purpose)
 
         bio_in = ssl.MemoryBIO()
         bio_out = ssl.MemoryBIO()
-        ssl_object = ssl_context.wrap_bio(bio_in, bio_out, server_side=server_side,
-                                          server_hostname=hostname)
-        wrapper = cls(transport_stream=transport_stream,
-                      standard_compatible=standard_compatible, _ssl_object=ssl_object,
-                      _read_bio=bio_in, _write_bio=bio_out)
+        ssl_object = ssl_context.wrap_bio(
+            bio_in, bio_out, server_side=server_side, server_hostname=hostname
+        )
+        wrapper = cls(
+            transport_stream=transport_stream,
+            standard_compatible=standard_compatible,
+            _ssl_object=ssl_object,
+            _read_bio=bio_in,
+            _write_bio=bio_out,
+        )
         await wrapper._call_sslobject_method(ssl_object.do_handshake)
         return wrapper
 
@@ -160,14 +180,18 @@ class TLSStream(ByteStream):
 
     async def send_eof(self) -> None:
         tls_version = self.extra(TLSAttribute.tls_version)
-        match = re.match(r'TLSv(\d+)(?:\.(\d+))?', tls_version)
+        match = re.match(r"TLSv(\d+)(?:\.(\d+))?", tls_version)
         if match:
             major, minor = int(match.group(1)), int(match.group(2) or 0)
             if (major, minor) < (1, 3):
-                raise NotImplementedError(f'send_eof() requires at least TLSv1.3; current '
-                                          f'session uses {tls_version}')
+                raise NotImplementedError(
+                    f"send_eof() requires at least TLSv1.3; current "
+                    f"session uses {tls_version}"
+                )
 
-        raise NotImplementedError('send_eof() has not yet been implemented for TLS streams')
+        raise NotImplementedError(
+            "send_eof() has not yet been implemented for TLS streams"
+        )
 
     @property
     def extra_attributes(self) -> Mapping[Any, Callable[[], Any]]:
@@ -177,12 +201,14 @@ class TLSStream(ByteStream):
             TLSAttribute.channel_binding_tls_unique: self._ssl_object.get_channel_binding,
             TLSAttribute.cipher: self._ssl_object.cipher,
             TLSAttribute.peer_certificate: lambda: self._ssl_object.getpeercert(False),
-            TLSAttribute.peer_certificate_binary: lambda: self._ssl_object.getpeercert(True),
+            TLSAttribute.peer_certificate_binary: lambda: self._ssl_object.getpeercert(
+                True
+            ),
             TLSAttribute.server_side: lambda: self._ssl_object.server_side,
             TLSAttribute.shared_ciphers: lambda: self._ssl_object.shared_ciphers(),
             TLSAttribute.standard_compatible: lambda: self.standard_compatible,
             TLSAttribute.ssl_object: lambda: self._ssl_object,
-            TLSAttribute.tls_version: self._ssl_object.version
+            TLSAttribute.tls_version: self._ssl_object.version,
         }
 
 
@@ -229,22 +255,28 @@ class TLSListener(Listener[TLSStream]):
 
         # Log all except cancellation exceptions
         if not isinstance(exc, get_cancelled_exc_class()):
-            logging.getLogger(__name__).exception('Error during TLS handshake')
+            logging.getLogger(__name__).exception("Error during TLS handshake")
 
         # Only reraise base exceptions and cancellation exceptions
         if not isinstance(exc, Exception) or isinstance(exc, get_cancelled_exc_class()):
             raise
 
-    async def serve(self, handler: Callable[[TLSStream], Any],
-                    task_group: Optional[TaskGroup] = None) -> None:
+    async def serve(
+        self,
+        handler: Callable[[TLSStream], Any],
+        task_group: Optional[TaskGroup] = None,
+    ) -> None:
         @wraps(handler)
         async def handler_wrapper(stream: AnyByteStream) -> None:
             from .. import fail_after
+
             try:
                 with fail_after(self.handshake_timeout):
                     wrapped_stream = await TLSStream.wrap(
-                        stream, ssl_context=self.ssl_context,
-                        standard_compatible=self.standard_compatible)
+                        stream,
+                        ssl_context=self.ssl_context,
+                        standard_compatible=self.standard_compatible,
+                    )
             except BaseException as exc:
                 await self.handle_handshake_error(exc, stream)
             else:

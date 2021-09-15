@@ -1,4 +1,4 @@
-__all__ = ('Queue', 'PriorityQueue', 'LifoQueue', 'QueueFull', 'QueueEmpty')
+__all__ = ("Queue", "PriorityQueue", "LifoQueue", "QueueFull", "QueueEmpty")
 
 import collections
 import heapq
@@ -9,11 +9,13 @@ from . import locks
 
 class QueueEmpty(Exception):
     """Raised when Queue.get_nowait() is called on an empty Queue."""
+
     pass
 
 
 class QueueFull(Exception):
     """Raised when the Queue.put_nowait() method is called on a full Queue."""
+
     pass
 
 
@@ -67,21 +69,21 @@ class Queue:
                 break
 
     def __repr__(self):
-        return f'<{type(self).__name__} at {id(self):#x} {self._format()}>'
+        return f"<{type(self).__name__} at {id(self):#x} {self._format()}>"
 
     def __str__(self):
-        return f'<{type(self).__name__} {self._format()}>'
+        return f"<{type(self).__name__} {self._format()}>"
 
     def _format(self):
-        result = f'maxsize={self._maxsize!r}'
-        if getattr(self, '_queue', None):
-            result += f' _queue={list(self._queue)!r}'
+        result = f"maxsize={self._maxsize!r}"
+        if getattr(self, "_queue", None):
+            result += f" _queue={list(self._queue)!r}"
         if self._getters:
-            result += f' _getters[{len(self._getters)}]'
+            result += f" _getters[{len(self._getters)}]"
         if self._putters:
-            result += f' _putters[{len(self._putters)}]'
+            result += f" _putters[{len(self._putters)}]"
         if self._unfinished_tasks:
-            result += f' tasks={self._unfinished_tasks}'
+            result += f" tasks={self._unfinished_tasks}"
         return result
 
     def qsize(self):
@@ -199,7 +201,7 @@ class Queue:
         the queue.
         """
         if self._unfinished_tasks <= 0:
-            raise ValueError('task_done() called too many times')
+            raise ValueError("task_done() called too many times")
         self._unfinished_tasks -= 1
         if self._unfinished_tasks == 0:
             self._finished.set()

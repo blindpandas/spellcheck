@@ -145,9 +145,7 @@ class SyncHTTPConnection(SyncHTTPTransport):
             url,
             headers,
         )
-        return self.connection.handle_request(
-            method, url, headers, stream, extensions
-        )
+        return self.connection.handle_request(method, url, headers, stream, extensions)
 
     def _open_socket(self, timeout: TimeoutDict = None) -> SyncSocketStream:
         scheme, hostname, port = self.origin
@@ -209,9 +207,7 @@ class SyncHTTPConnection(SyncHTTPTransport):
     ) -> None:
         if self.connection is not None:
             logger.trace("start_tls hostname=%r timeout=%r", hostname, timeout)
-            self.socket = self.connection.start_tls(
-                hostname, ssl_context, timeout
-            )
+            self.socket = self.connection.start_tls(hostname, ssl_context, timeout)
             logger.trace("start_tls complete hostname=%r timeout=%r", hostname, timeout)
 
     def close(self) -> None:

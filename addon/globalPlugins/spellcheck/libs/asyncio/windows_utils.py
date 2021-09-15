@@ -2,8 +2,8 @@
 
 import sys
 
-if sys.platform != 'win32':  # pragma: no cover
-    raise ImportError('win32 only')
+if sys.platform != "win32":  # pragma: no cover
+    raise ImportError("win32 only")
 
 import _winapi
 import itertools
@@ -14,7 +14,7 @@ import tempfile
 import warnings
 
 
-__all__ = 'pipe', 'Popen', 'PIPE', 'PipeHandle'
+__all__ = "pipe", "Popen", "PIPE", "PipeHandle"
 
 
 # Constants/globals
@@ -32,8 +32,10 @@ _mmap_counter = itertools.count()
 def pipe(*, duplex=False, overlapped=(True, True), bufsize=BUFSIZE):
     """Like os.pipe() but with overlapped support and using handles not fds."""
     address = tempfile.mktemp(
-        prefix=r'\\.\pipe\python-pipe-{:d}-{:d}-'.format(
-            os.getpid(), next(_mmap_counter)))
+        prefix=r"\\.\pipe\python-pipe-{:d}-{:d}-".format(
+            os.getpid(), next(_mmap_counter)
+        )
+    )
 
     if duplex:
         openmode = _winapi.PIPE_ACCESS_DUPLEX
@@ -57,12 +59,25 @@ def pipe(*, duplex=False, overlapped=(True, True), bufsize=BUFSIZE):
     h1 = h2 = None
     try:
         h1 = _winapi.CreateNamedPipe(
-            address, openmode, _winapi.PIPE_WAIT,
-            1, obsize, ibsize, _winapi.NMPWAIT_WAIT_FOREVER, _winapi.NULL)
+            address,
+            openmode,
+            _winapi.PIPE_WAIT,
+            1,
+            obsize,
+            ibsize,
+            _winapi.NMPWAIT_WAIT_FOREVER,
+            _winapi.NULL,
+        )
 
         h2 = _winapi.CreateFile(
-            address, access, 0, _winapi.NULL, _winapi.OPEN_EXISTING,
-            flags_and_attribs, _winapi.NULL)
+            address,
+            access,
+            0,
+            _winapi.NULL,
+            _winapi.OPEN_EXISTING,
+            flags_and_attribs,
+            _winapi.NULL,
+        )
 
         ov = _winapi.ConnectNamedPipe(h1, overlapped=True)
         ov.GetOverlappedResult(True)
@@ -83,15 +98,16 @@ class PipeHandle:
 
     The IOCP event loop can use these instead of socket objects.
     """
+
     def __init__(self, handle):
         self._handle = handle
 
     def __repr__(self):
         if self._handle is not None:
-            handle = f'handle={self._handle!r}'
+            handle = f"handle={self._handle!r}"
         else:
-            handle = 'closed'
-        return f'<{self.__class__.__name__} {handle}>'
+            handle = "closed"
+        return f"<{self.__class__.__name__} {handle}>"
 
     @property
     def handle(self):
@@ -109,8 +125,7 @@ class PipeHandle:
 
     def __del__(self):
         if self._handle is not None:
-            warnings.warn(f"unclosed {self!r}", ResourceWarning,
-                          source=self)
+            warnings.warn(f"unclosed {self!r}", ResourceWarning, source=self)
             self.close()
 
     def __enter__(self):
@@ -128,9 +143,10 @@ class Popen(subprocess.Popen):
 
     The stdin, stdout, stderr are None or instances of PipeHandle.
     """
+
     def __init__(self, args, stdin=None, stdout=None, stderr=None, **kwds):
-        assert not kwds.get('universal_newlines')
-        assert kwds.get('bufsize', 0) == 0
+        assert not kwds.get("universal_newlines")
+        assert kwds.get("bufsize", 0) == 0
         stdin_rfd = stdout_wfd = stderr_wfd = None
         stdin_wh = stdout_rh = stderr_rh = None
         if stdin == PIPE:
@@ -151,8 +167,9 @@ class Popen(subprocess.Popen):
         else:
             stderr_wfd = stderr
         try:
-            super().__init__(args, stdin=stdin_rfd, stdout=stdout_wfd,
-                             stderr=stderr_wfd, **kwds)
+            super().__init__(
+                args, stdin=stdin_rfd, stdout=stdout_wfd, stderr=stderr_wfd, **kwds
+            )
         except:
             for h in (stdin_wh, stdout_rh, stderr_rh):
                 if h is not None:

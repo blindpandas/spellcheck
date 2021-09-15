@@ -1,8 +1,12 @@
 """Abstract Transport class."""
 
 __all__ = (
-    'BaseTransport', 'ReadTransport', 'WriteTransport',
-    'Transport', 'DatagramTransport', 'SubprocessTransport',
+    "BaseTransport",
+    "ReadTransport",
+    "WriteTransport",
+    "Transport",
+    "DatagramTransport",
+    "SubprocessTransport",
 )
 
 
@@ -107,7 +111,7 @@ class WriteTransport(BaseTransport):
         The default implementation concatenates the arguments and
         calls write() on the result.
         """
-        data = b''.join(list_of_data)
+        data = b"".join(list_of_data)
         self.write(data)
 
     def write_eof(self):
@@ -179,7 +183,6 @@ class DatagramTransport(BaseTransport):
 
 
 class SubprocessTransport(BaseTransport):
-
     def get_pid(self):
         """Get subprocess id."""
         raise NotImplementedError
@@ -263,26 +266,29 @@ class _FlowControlMixin(Transport):
             try:
                 self._protocol.pause_writing()
             except Exception as exc:
-                self._loop.call_exception_handler({
-                    'message': 'protocol.pause_writing() failed',
-                    'exception': exc,
-                    'transport': self,
-                    'protocol': self._protocol,
-                })
+                self._loop.call_exception_handler(
+                    {
+                        "message": "protocol.pause_writing() failed",
+                        "exception": exc,
+                        "transport": self,
+                        "protocol": self._protocol,
+                    }
+                )
 
     def _maybe_resume_protocol(self):
-        if (self._protocol_paused and
-                self.get_write_buffer_size() <= self._low_water):
+        if self._protocol_paused and self.get_write_buffer_size() <= self._low_water:
             self._protocol_paused = False
             try:
                 self._protocol.resume_writing()
             except Exception as exc:
-                self._loop.call_exception_handler({
-                    'message': 'protocol.resume_writing() failed',
-                    'exception': exc,
-                    'transport': self,
-                    'protocol': self._protocol,
-                })
+                self._loop.call_exception_handler(
+                    {
+                        "message": "protocol.resume_writing() failed",
+                        "exception": exc,
+                        "transport": self,
+                        "protocol": self._protocol,
+                    }
+                )
 
     def get_write_buffer_limits(self):
         return (self._low_water, self._high_water)
@@ -297,8 +303,7 @@ class _FlowControlMixin(Transport):
             low = high // 4
 
         if not high >= low >= 0:
-            raise ValueError(
-                f'high ({high!r}) must be >= low ({low!r}) must be >= 0')
+            raise ValueError(f"high ({high!r}) must be >= low ({low!r}) must be >= 0")
 
         self._high_water = high
         self._low_water = low

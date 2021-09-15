@@ -249,9 +249,7 @@ class SyncConnectionPool(SyncHTTPTransport):
         )
         return status_code, headers, wrapped_stream, extensions
 
-    def _get_connection_from_pool(
-        self, origin: Origin
-    ) -> Optional[SyncHTTPConnection]:
+    def _get_connection_from_pool(self, origin: Origin) -> Optional[SyncHTTPConnection]:
         # Determine expired keep alive connections on this origin.
         reuse_connection = None
         connections_to_close = set()

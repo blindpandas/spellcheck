@@ -162,9 +162,7 @@ class SyncHTTP2Connection(SyncBaseHTTPConnection):
             h2_stream = SyncHTTP2Stream(stream_id=stream_id, connection=self)
             self._streams[stream_id] = h2_stream
             self._events[stream_id] = []
-            return h2_stream.handle_request(
-                method, url, headers, stream, extensions
-            )
+            return h2_stream.handle_request(method, url, headers, stream, extensions)
         except Exception:  # noqa: PIE786
             self.max_streams_semaphore.release()
             raise
@@ -229,9 +227,7 @@ class SyncHTTP2Connection(SyncBaseHTTPConnection):
             flow = min(local_flow, connection_flow)
         return flow
 
-    def wait_for_event(
-        self, stream_id: int, timeout: TimeoutDict
-    ) -> h2.events.Event:
+    def wait_for_event(self, stream_id: int, timeout: TimeoutDict) -> h2.events.Event:
         """
         Returns the next event for a given stream.
         If no events are available yet, then waits on the network until
@@ -273,9 +269,7 @@ class SyncHTTP2Connection(SyncBaseHTTPConnection):
         data_to_send = self._h2_state.data_to_send()
         self.socket.write(data_to_send, timeout)
 
-    def send_data(
-        self, stream_id: int, chunk: bytes, timeout: TimeoutDict
-    ) -> None:
+    def send_data(self, stream_id: int, chunk: bytes, timeout: TimeoutDict) -> None:
         logger.trace("send_data stream_id=%r chunk=%r", stream_id, chunk)
         self._h2_state.send_data(stream_id, chunk)
         data_to_send = self._h2_state.data_to_send()

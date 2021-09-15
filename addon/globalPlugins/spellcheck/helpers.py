@@ -20,4 +20,3 @@ def import_bundled_library():
         yield
     finally:
         sys.path.remove(LIBS_DIRECTORY)
-

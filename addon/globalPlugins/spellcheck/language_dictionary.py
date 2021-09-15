@@ -3,12 +3,12 @@
 # Copyright (c) 2021 Blind Pandas Team
 # This file is covered by the GNU General Public License.
 
+import math
 import os
-import zipfile
-import json
 import globalVars
 from io import BytesIO
 from functools import partial
+from logHandler import log
 from .helpers import import_bundled_library, DATA_DIRECTORY
 
 
@@ -19,12 +19,17 @@ with import_bundled_library():
 
 
 # Constants
+DICT_GITHUB_API_URL = "https://api.github.com/repos/LibreOffice/dictionaries/contents/{lang_tag}?ref=master"
+DICTIONARY_FILE_EXTS = {
+    ".dic",
+    ".aff",
+}
 THREAD_POOL_EXECUTOR = ThreadPoolExecutor()
-SPELLCHECK_DICTIONARIES_DIRECTORY = os.path.join(globalVars.appArgs.configPath, "spellcheck_dictionaries")
-DICTIONARY_FILE_EXTS = {".dic", ".aff",}
-with open(os.path.join(DATA_DIRECTORY, "dictionary_download_urls.json"), "r") as file:
-    LANGUAGE_DOWNLOAD_URLS = json.load(file)
-
+SPELLCHECK_DICTIONARIES_DIRECTORY = os.path.join(
+    globalVars.appArgs.configPath, "spellcheck_dictionaries"
+)
+with open(os.path.join(DATA_DIRECTORY, "downloadable_languages.txt"), "r") as file:
+    DOWNLOADABLE_LANGUAGES = [tag.strip() for tag in file if tag.strip()]
 
 
 class LanguageDictionaryNotAvailable(LookupError):
@@ -37,9 +42,13 @@ class LanguageDictionaryNotAvailable(LookupError):
 class LanguageDictionaryDownloadable(LanguageDictionaryNotAvailable):
     """Raised if the language dictionary is unavailable locally, but available for download."""
 
-    def __init__(self, language, download_url, *args, **kwargs):
+
+class MultipleDownloadableLanguagesFound(LanguageDictionaryDownloadable):
+    """Raised if more than one variant are available for download."""
+
+    def __init__(self, language, available_variances, *args, **kwargs):
         super().__init__(language, *args, **kwargs)
-        self.download_url = download_url
+        self.available_variances = available_variances
 
 
 def set_enchant_language_dictionaries_directory():
@@ -50,63 +59,83 @@ def set_enchant_language_dictionaries_directory():
 
 def get_all_possible_languages():
     locally_available = set(enchant.list_languages())
-    downloadable = set(LANGUAGE_DOWNLOAD_URLS)
-    return locally_available.union(downloadable)
-
+    downloadable = set(DOWNLOADABLE_LANGUAGES)
+    return list(sorted(locally_available.union(downloadable)))
 
 
 def ensure_language_dictionary_available(lang_tag):
     if lang_tag in enchant.list_languages():
         return True
-    elif lang_tag in LANGUAGE_DOWNLOAD_URLS:
-        raise LanguageDictionaryDownloadable(lang_tag, LANGUAGE_DOWNLOAD_URLS[lang_tag])
+    elif lang_tag in DOWNLOADABLE_LANGUAGES:
+        raise LanguageDictionaryDownloadable(lang_tag)
     elif "_" in lang_tag:
         return ensure_language_dictionary_available(lang_tag.split("_")[0])
     else:
+        if len(lang_tag) == 2:
+            available_variances = [
+                downloadable_lang
+                for downloadable_lang in DOWNLOADABLE_LANGUAGES
+                if downloadable_lang.split("_")[0] == lang_tag
+            ]
+            if available_variances:
+                raise MultipleDownloadableLanguagesFound(
+                    language=lang_tag, available_variances=available_variances
+                )
         raise LanguageDictionaryNotAvailable(lang_tag)
 
 
 def download_language_dictionary(lang_tag, progress_callback, done_callback):
-    download_url = get_language_dictionary_download_url(lang_tag)
-    if download_url is None:
-        raise ValueError(f"No download url for language {lang_tag}")
+    if lang_tag not in DOWNLOADABLE_LANGUAGES:
+        raise ValueError(f"Language {lang_tag} is not available for download")
     THREAD_POOL_EXECUTOR.submit(
-        _do_download__and_extract_lang_dictionary,
-        download_url,
-        progress_callback
+        _do_download__and_extract_lang_dictionary, lang_tag, progress_callback
     ).add_done_callback(partial(_done_callback, done_callback))
 
 
-def get_language_dictionary_download_url(lang_tag):
-    return LANGUAGE_DOWNLOAD_URLS.get(lang_tag)
+def get_language_dictionary_download_info(lang_tag):
+    directory_listing = httpx.get(DICT_GITHUB_API_URL.format(lang_tag=lang_tag)).json()
+    return {
+        entry["name"]: (entry["download_url"], entry["size"])
+        for entry in directory_listing
+        if os.path.splitext(entry["name"])[-1] in DICTIONARY_FILE_EXTS
+    }
 
 
-def extract_language_dictionary_archive(file_buffer):
-    hunspell_extraction_directory = os.path.join(SPELLCHECK_DICTIONARIES_DIRECTORY, "hunspell")
+def _do_download__and_extract_lang_dictionary(lang_tag, progress_callback):
+    download_info = get_language_dictionary_download_info(lang_tag)
+    name_to_buffer = {}
+    total_size = sum(filesize for (n, (u, filesize)) in download_info.items())
+    downloaded_til_now = 0
+    for (filename, (download_url, file_size)) in download_info.items():
+        with httpx.Client() as client:
+            with client.stream("GET", download_url) as response:
+                file_buffer = BytesIO()
+                for data in response.iter_bytes():
+                    file_buffer.write(data)
+                    downloaded_til_now += len(data)
+                    progress = math.floor((downloaded_til_now / total_size) * 100)
+                    progress_callback(progress)
+                file_buffer.seek(0)
+                name_to_buffer[filename] = file_buffer
+    # Now copy the downloaded file to the destination
+    hunspell_extraction_directory = os.path.join(
+        SPELLCHECK_DICTIONARIES_DIRECTORY, "hunspell"
+    )
     if not os.path.isdir(hunspell_extraction_directory):
         os.mkdir(hunspell_extraction_directory)
-    with zipfile.ZipFile(file_buffer, "r") as archive:
-        members = [
-            fname for fname in archive.namelist()
-            if os.path.splitext(fname)[-1] in DICTIONARY_FILE_EXTS
-        ]
-        archive.extractall(hunspell_extraction_directory, members)
-
-
-def _do_download__and_extract_lang_dictionary(download_url, progress_callback):
-    file_buffer = BytesIO()
-    with httpx.stream("GET", download_url) as response:
-        total_size = int(response.headers["Content-Length"])
-        for data in response.iter_bytes():
-            file_buffer.write(data)
-            progress = (response.num_bytes_downloaded / total_size) * 100
-            progress_callback(int(progress))
-    file_buffer.seek(0)
-    extract_language_dictionary_archive(file_buffer)
+    for (filename, file_buffer) in name_to_buffer.items():
+        full_file_path = os.path.join(hunspell_extraction_directory, filename)
+        with open(full_file_path, "wb") as output_file:
+            output_file.write(file_buffer.getvalue())
 
 
 def _done_callback(done_callback, future):
     if done_callback is None:
         return
-    exception = future.exception()
-    done_callback(exception)
+    try:
+        result = future.result()
+        done_callback(None)
+    except httpx.HTTPError:
+        done_callback(ConnectionError("Failed to get language dictionary"))
+    except Exception as e:
+        done_callback(e)

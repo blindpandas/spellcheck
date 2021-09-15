@@ -54,9 +54,7 @@ SUBAUTHORITY_MATCHER = re.compile(
         "^(?:(?P<userinfo>{0})@)?"  # userinfo
         "(?P<host>{1})"  # host
         ":?(?P<port>{2})?$"  # port
-    ).format(
-        abnf_regexp.USERINFO_RE, abnf_regexp.HOST_PATTERN, abnf_regexp.PORT_RE
-    )
+    ).format(abnf_regexp.USERINFO_RE, abnf_regexp.HOST_PATTERN, abnf_regexp.PORT_RE)
 )
 
 
@@ -65,9 +63,7 @@ IPv4_MATCHER = re.compile("^" + abnf_regexp.IPv4_RE + "$")
 IPv6_MATCHER = re.compile(r"^\[" + abnf_regexp.IPv6_ADDRZ_RFC4007_RE + r"\]$")
 
 # Used by host validator
-IPv6_NO_RFC4007_MATCHER = re.compile(
-    r"^\[%s\]$" % (abnf_regexp.IPv6_ADDRZ_RE)
-)
+IPv6_NO_RFC4007_MATCHER = re.compile(r"^\[%s\]$" % (abnf_regexp.IPv6_ADDRZ_RE))
 
 # Matcher used to validate path components
 PATH_MATCHER = re.compile(abnf_regexp.PATH_RE)
@@ -114,9 +110,7 @@ ISUBAUTHORITY_MATCHER = re.compile(
         u"^(?:(?P<userinfo>{0})@)?"  # iuserinfo
         u"(?P<host>{1})"  # ihost
         u":?(?P<port>{2})?$"  # port
-    ).format(
-        abnf_regexp.IUSERINFO_RE, abnf_regexp.IHOST_RE, abnf_regexp.PORT_RE
-    ),
+    ).format(abnf_regexp.IUSERINFO_RE, abnf_regexp.IHOST_RE, abnf_regexp.PORT_RE),
     re.UNICODE,
 )
 

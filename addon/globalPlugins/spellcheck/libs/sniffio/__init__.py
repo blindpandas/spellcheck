@@ -1,8 +1,9 @@
 """Top-level package for sniffio."""
 
 __all__ = [
-    "current_async_library", "AsyncLibraryNotFoundError",
-    "current_async_library_cvar"
+    "current_async_library",
+    "AsyncLibraryNotFoundError",
+    "current_async_library_cvar",
 ]
 
 from ._version import __version__

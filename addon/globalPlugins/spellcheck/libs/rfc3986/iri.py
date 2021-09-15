@@ -29,9 +29,7 @@ except ImportError:  # pragma: no cover
     idna = None
 
 
-class IRIReference(
-    namedtuple("IRIReference", misc.URI_COMPONENTS), uri.URIMixin
-):
+class IRIReference(namedtuple("IRIReference", misc.URI_COMPONENTS), uri.URIMixin):
     """Immutable object representing a parsed IRI Reference.
 
     Can be encoded into an URIReference object via the procedure
@@ -44,9 +42,7 @@ class IRIReference(
 
     slots = ()
 
-    def __new__(
-        cls, scheme, authority, path, query, fragment, encoding="utf-8"
-    ):
+    def __new__(cls, scheme, authority, path, query, fragment, encoding="utf-8"):
         """Create a new IRIReference."""
         ref = super(IRIReference, cls).__new__(
             cls,
@@ -136,10 +132,7 @@ class IRIReference(
             authority = ""
             if self.host:
                 authority = ".".join(
-                    [
-                        compat.to_str(idna_encoder(part))
-                        for part in self.host.split(".")
-                    ]
+                    [compat.to_str(idna_encoder(part)) for part in self.host.split(".")]
                 )
 
             if self.userinfo is not None:

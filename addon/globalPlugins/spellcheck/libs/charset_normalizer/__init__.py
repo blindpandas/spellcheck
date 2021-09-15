@@ -28,4 +28,5 @@ from charset_normalizer.models import CharsetMatch, CharsetMatches
 # Backward-compatible v1 imports
 from charset_normalizer.models import CharsetNormalizerMatch
 import charset_normalizer.api as CharsetDetector
+
 CharsetNormalizerMatches = CharsetDetector

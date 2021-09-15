@@ -370,9 +370,7 @@ class URIBuilder(object):
         """
         return uri.URIReference(
             self.scheme,
-            normalizers.normalize_authority(
-                (self.userinfo, self.host, self.port)
-            ),
+            normalizers.normalize_authority((self.userinfo, self.host, self.port)),
             self.path,
             self.query,
             self.fragment,

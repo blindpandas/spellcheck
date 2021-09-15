@@ -167,12 +167,7 @@ class SyncHTTPProxy(SyncConnectionPool):
         url = self.proxy_origin + (target,)
         headers = merge_headers(self.proxy_headers, headers)
 
-        (
-            status_code,
-            headers,
-            stream,
-            extensions,
-        ) = connection.handle_request(
+        (status_code, headers, stream, extensions,) = connection.handle_request(
             method, url, headers=headers, stream=stream, extensions=extensions
         )
 
@@ -270,12 +265,7 @@ class SyncHTTPProxy(SyncConnectionPool):
 
         # Once the connection has been established we can send requests on
         # it as normal.
-        (
-            status_code,
-            headers,
-            stream,
-            extensions,
-        ) = connection.handle_request(
+        (status_code, headers, stream, extensions,) = connection.handle_request(
             method,
             url,
             headers=headers,

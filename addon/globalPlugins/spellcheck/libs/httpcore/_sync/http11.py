@@ -155,9 +155,7 @@ class SyncHTTP11Connection(SyncBaseHTTPConnection):
             event = h11.Request(method=method, target=target, headers=headers)
         self._send_event(event, timeout)
 
-    def _send_request_body(
-        self, stream: SyncByteStream, timeout: TimeoutDict
-    ) -> None:
+    def _send_request_body(self, stream: SyncByteStream, timeout: TimeoutDict) -> None:
         """
         Send the request body.
         """
@@ -198,9 +196,7 @@ class SyncHTTP11Connection(SyncBaseHTTPConnection):
 
         return http_version, event.status_code, event.reason, headers
 
-    def _receive_response_data(
-        self, timeout: TimeoutDict
-    ) -> Iterator[bytes]:
+    def _receive_response_data(self, timeout: TimeoutDict) -> Iterator[bytes]:
         """
         Read the response data from the network.
         """

@@ -8,10 +8,20 @@ from .log import logger
 
 
 class BaseSubprocessTransport(transports.SubprocessTransport):
-
-    def __init__(self, loop, protocol, args, shell,
-                 stdin, stdout, stderr, bufsize,
-                 waiter=None, extra=None, **kwargs):
+    def __init__(
+        self,
+        loop,
+        protocol,
+        args,
+        shell,
+        stdin,
+        stdout,
+        stderr,
+        bufsize,
+        waiter=None,
+        extra=None,
+        **kwargs,
+    ):
         super().__init__(extra)
         self._closed = False
         self._protocol = protocol
@@ -33,53 +43,59 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
 
         # Create the child process: set the _proc attribute
         try:
-            self._start(args=args, shell=shell, stdin=stdin, stdout=stdout,
-                        stderr=stderr, bufsize=bufsize, **kwargs)
+            self._start(
+                args=args,
+                shell=shell,
+                stdin=stdin,
+                stdout=stdout,
+                stderr=stderr,
+                bufsize=bufsize,
+                **kwargs,
+            )
         except:
             self.close()
             raise
 
         self._pid = self._proc.pid
-        self._extra['subprocess'] = self._proc
+        self._extra["subprocess"] = self._proc
 
         if self._loop.get_debug():
             if isinstance(args, (bytes, str)):
                 program = args
             else:
                 program = args[0]
-            logger.debug('process %r created: pid %s',
-                         program, self._pid)
+            logger.debug("process %r created: pid %s", program, self._pid)
 
         self._loop.create_task(self._connect_pipes(waiter))
 
     def __repr__(self):
         info = [self.__class__.__name__]
         if self._closed:
-            info.append('closed')
+            info.append("closed")
         if self._pid is not None:
-            info.append(f'pid={self._pid}')
+            info.append(f"pid={self._pid}")
         if self._returncode is not None:
-            info.append(f'returncode={self._returncode}')
+            info.append(f"returncode={self._returncode}")
         elif self._pid is not None:
-            info.append('running')
+            info.append("running")
         else:
-            info.append('not started')
+            info.append("not started")
 
         stdin = self._pipes.get(0)
         if stdin is not None:
-            info.append(f'stdin={stdin.pipe}')
+            info.append(f"stdin={stdin.pipe}")
 
         stdout = self._pipes.get(1)
         stderr = self._pipes.get(2)
         if stdout is not None and stderr is stdout:
-            info.append(f'stdout=stderr={stdout.pipe}')
+            info.append(f"stdout=stderr={stdout.pipe}")
         else:
             if stdout is not None:
-                info.append(f'stdout={stdout.pipe}')
+                info.append(f"stdout={stdout.pipe}")
             if stderr is not None:
-                info.append(f'stderr={stderr.pipe}')
+                info.append(f"stderr={stderr.pipe}")
 
-        return '<{}>'.format(' '.join(info))
+        return "<{}>".format(" ".join(info))
 
     def _start(self, args, shell, stdin, stdout, stderr, bufsize, **kwargs):
         raise NotImplementedError
@@ -103,15 +119,19 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
                 continue
             proto.pipe.close()
 
-        if (self._proc is not None and
-                # has the child process finished?
-                self._returncode is None and
-                # the child process has finished, but the
-                # transport hasn't been notified yet?
-                self._proc.poll() is None):
+        if (
+            self._proc is not None
+            and
+            # has the child process finished?
+            self._returncode is None
+            and
+            # the child process has finished, but the
+            # transport hasn't been notified yet?
+            self._proc.poll() is None
+        ):
 
             if self._loop.get_debug():
-                logger.warning('Close running child process: kill %r', self)
+                logger.warning("Close running child process: kill %r", self)
 
             try:
                 self._proc.kill()
@@ -122,8 +142,7 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
 
     def __del__(self):
         if not self._closed:
-            warnings.warn(f"unclosed transport {self!r}", ResourceWarning,
-                          source=self)
+            warnings.warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
             self.close()
 
     def get_pid(self):
@@ -161,20 +180,20 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
 
             if proc.stdin is not None:
                 _, pipe = await loop.connect_write_pipe(
-                    lambda: WriteSubprocessPipeProto(self, 0),
-                    proc.stdin)
+                    lambda: WriteSubprocessPipeProto(self, 0), proc.stdin
+                )
                 self._pipes[0] = pipe
 
             if proc.stdout is not None:
                 _, pipe = await loop.connect_read_pipe(
-                    lambda: ReadSubprocessPipeProto(self, 1),
-                    proc.stdout)
+                    lambda: ReadSubprocessPipeProto(self, 1), proc.stdout
+                )
                 self._pipes[1] = pipe
 
             if proc.stderr is not None:
                 _, pipe = await loop.connect_read_pipe(
-                    lambda: ReadSubprocessPipeProto(self, 2),
-                    proc.stderr)
+                    lambda: ReadSubprocessPipeProto(self, 2), proc.stderr
+                )
                 self._pipes[2] = pipe
 
             assert self._pending_calls is not None
@@ -207,7 +226,7 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
         assert returncode is not None, returncode
         assert self._returncode is None, self._returncode
         if self._loop.get_debug():
-            logger.info('%r exited with return code %r', self, returncode)
+            logger.info("%r exited with return code %r", self, returncode)
         self._returncode = returncode
         if self._proc.returncode is None:
             # asyncio uses a child watcher: copy the status into the Popen
@@ -237,8 +256,7 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
         assert not self._finished
         if self._returncode is None:
             return
-        if all(p is not None and p.disconnected
-               for p in self._pipes.values()):
+        if all(p is not None and p.disconnected for p in self._pipes.values()):
             self._finished = True
             self._call(self._call_connection_lost, None)
 
@@ -252,7 +270,6 @@ class BaseSubprocessTransport(transports.SubprocessTransport):
 
 
 class WriteSubprocessPipeProto(protocols.BaseProtocol):
-
     def __init__(self, proc, fd):
         self.proc = proc
         self.fd = fd
@@ -263,7 +280,7 @@ class WriteSubprocessPipeProto(protocols.BaseProtocol):
         self.pipe = transport
 
     def __repr__(self):
-        return f'<{self.__class__.__name__} fd={self.fd} pipe={self.pipe!r}>'
+        return f"<{self.__class__.__name__} fd={self.fd} pipe={self.pipe!r}>"
 
     def connection_lost(self, exc):
         self.disconnected = True
@@ -277,8 +294,6 @@ class WriteSubprocessPipeProto(protocols.BaseProtocol):
         self.proc._protocol.resume_writing()
 
 
-class ReadSubprocessPipeProto(WriteSubprocessPipeProto,
-                              protocols.Protocol):
-
+class ReadSubprocessPipeProto(WriteSubprocessPipeProto, protocols.Protocol):
     def data_received(self, data):
         self.proc._pipe_data_received(self.fd, data)
