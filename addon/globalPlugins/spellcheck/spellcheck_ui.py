@@ -443,7 +443,7 @@ class SpellCheckMenu(MenuObject):
             queueHandler.queueFunction(
                 queueHandler.eventQueue,
                 ui.message,
-                _("Can not replace text, the control is read only"),
+                _("Can not replace text, the text field is read only"),
             )
             queueHandler.queueFunction(
                 queueHandler.eventQueue, api.setFocusObject, self.parent
