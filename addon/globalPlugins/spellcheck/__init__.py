@@ -35,15 +35,11 @@ from .language_dictionary import (
     LanguageDictionaryDownloadable,
     MultipleDownloadableLanguagesFound,
 )
-from .spellcheck_ui import SpellCheckMenu
+from .spellcheck_ui import SpellCheckMenu, SCRCAT__SPELLCHECK
 
 
 import addonHandler
-
 addonHandler.initTranslation()
-
-# Translators: script category for Spellcheck add-on
-SCRCAT__SPELLCHECK = _("Spellcheck")
 
 
 class LanguageChoiceDialog(wx.SingleChoiceDialog):

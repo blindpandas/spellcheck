@@ -37,8 +37,11 @@ PASTE_GESTURE = KeyboardInputGesture.fromName("control+v")
 
 
 import addonHandler
-
 addonHandler.initTranslation()
+
+
+# Translators: script category for Spellcheck add-on
+SCRCAT__SPELLCHECK = _("Spellcheck")
 
 
 class UserChoiceType(Enum):
@@ -295,11 +298,21 @@ class MisspellingMenuItemObject(MenuItemObject):
     def script_enter(self, gesture):
         self.script_downarrow(gesture)
 
-    @script(gesture="kb:control+c")
+    @script(
+        gesture="kb:control+c",
+        # translators: appears in the NVDA input help.
+        description=_("Copies the corrected text to the clipboard"),
+        category=SCRCAT__SPELLCHECK,
+    )
     def script_copy_corrected_text(self, gesture):
         self.parent.copy_to_clipboard()
 
-    @script(gesture="kb:control+r")
+    @script(
+        gesture="kb:control+r",
+        # translators: appears in the NVDA input help.
+        description=_("Replaces the text in the edit field with the corrected text"),
+        category=SCRCAT__SPELLCHECK,
+    )
     def script_replace_text(self, gesture):
         self.parent.replace_text()
 
