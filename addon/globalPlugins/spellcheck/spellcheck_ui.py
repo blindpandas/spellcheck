@@ -21,7 +21,7 @@ from NVDAObjects.behaviors import (
 from keyboardHandler import KeyboardInputGesture
 from scriptHandler import script
 from logHandler import log
-from .helpers import import_bundled_library
+from .helpers import import_bundled_library, play_sound
 
 
 with import_bundled_library():
@@ -467,6 +467,11 @@ class SpellCheckMenu(MenuObject):
             queueHandler.queueFunction(queueHandler.eventQueue, PASTE_GESTURE.send)
             queueHandler.queueFunction(
                 queueHandler.eventQueue,
+                play_sound,
+                "text_replace"
+            )
+            queueHandler.queueFunction(
+                queueHandler.eventQueue,
                 speech.speakObject,
                 self.parent,
                 controlTypes.OutputReason.FOCUS,
@@ -475,3 +480,4 @@ class SpellCheckMenu(MenuObject):
                 queueHandler.queueFunction(
                     queueHandler.eventQueue, api.copyToClip, old_clipboard_text
                 )
+

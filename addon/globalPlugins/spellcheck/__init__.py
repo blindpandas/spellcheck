@@ -27,6 +27,7 @@ import NVDAObjects.behaviors
 from contextlib import suppress
 from scriptHandler import script
 from logHandler import log
+from .helpers import play_sound
 from .language_dictionary import (
     set_enchant_language_dictionaries_directory,
     get_all_possible_languages,
@@ -216,6 +217,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             ui.message("No spelling mistakes")
             return
         eventHandler.queueEvent("gainFocus", misspellingsMenu)
+        queueHandler.queueFunction(
+            queueHandler.eventQueue,
+            play_sound,
+            "menu_open"
+        )
 
     def obtain_language_dictionary(self, language_tag):
         try:
