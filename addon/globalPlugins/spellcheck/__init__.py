@@ -134,6 +134,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def on_language_variance_download(self, lang_tag):
         wx.CallAfter(LanguageDictionaryDownloader(lang_tag, ask_user=False).download)
 
+    def on_user_chosen_language(self, lang_tag):
+        self._active_spellcheck_language = lang_tag
+        self.obtain_language_dictionary(lang_tag)
+
     @script(
         gesture="kb:nvda+alt+s",
         # translators: appears in the NVDA input help.
@@ -155,7 +159,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self.spellcheck(spellcheck_language, text)
 
     @script(
-        gesture="kb:nvda+control+alt+s",
+        gesture="kb:nvda+alt+shift+l",
         # translators: appears in the NVDA input help.
         description=_(
             "Toggles the method used in determining the language for spellchecking: user-chosen versus current input language"
@@ -174,7 +178,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             gui.runScriptModalDialog(
                 lang_choice_dialog,
-                lambda tag: setattr(self, "_active_spellcheck_language", tag),
+                self.on_user_chosen_language,
             )
         else:
             self._active_spellcheck_language = None
