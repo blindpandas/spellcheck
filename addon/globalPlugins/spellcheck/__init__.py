@@ -16,6 +16,7 @@ import api
 import gui
 import ui
 import controlTypes
+import globalVars
 import globalPluginHandler
 import queueHandler
 import eventHandler
@@ -53,7 +54,9 @@ class LanguageChoiceDialog(wx.SingleChoiceDialog):
         super().__init__(*args, **kwargs)
 
     def ShowModal(self):
+        globalVars.LANGUAGE_DIALOG_SHOWN = True
         retval = super().ShowModal()
+        globalVars.LANGUAGE_DIALOG_SHOWN = False
         if retval == wx.ID_OK:
             return self.language_tags[self.GetSelection()]
 
@@ -167,6 +170,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         category=SCRCAT__SPELLCHECK,
     )
     def script_toggle_user_chosen_spellcheck_language(self, gesture):
+        if getattr(globalVars, "LANGUAGE_DIALOG_SHOWN", False):
+            queueHandler.queueFunction(
+                queueHandler.eventQueue,
+                ui.message,
+                # Translators: spoken message when the dialog is already open
+                _("Dialog is already open")
+            )
+            return
         if self._active_spellcheck_language is None:
             lang_choice_dialog = LanguageChoiceDialog(
                 get_all_possible_languages(),
