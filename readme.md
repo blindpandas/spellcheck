@@ -14,7 +14,7 @@ the purpose of the addon is to find and correct the spelling errors quickly in a
 - select some text using the normal selection keys, such as Control + a for selecting all.
 - press NVDA+Alt+s to invoke the addon interface.
 - the spellcheck will be done based on your current keyboard input.
-- alternatively, you can pick a language manually by pressing NVDA+CTRL+Alt+S.
+- alternatively, you can pick a language manually by pressing NVDA+ALT+SHIFT+L.
 - if there are no errors, a message will be announced indicating that there are no spelling mistakes.
 - in case there are errors, use right and left arrows to navigate among the misspelled words, and enter or down arrow to bring up the suggestion menu. 
 - navigate among the suggestions with up and down arrow, then enter to pick a suggestion. The NVDA will announce the chosen suggestion for each error while navigating among them with left and right arrows. 
@@ -40,14 +40,14 @@ for example: if the text was "hello users of nvda, we hope you are having a wond
 
 The addon comes with the English dictionary by default, which will be installed with your permission while installing the addon.
 The spell check will be done depending on the keyboard input language. However, if the dictionary hasn't been installed previously, NVDA will prompt you to install the dictionary of that language. Once you click yes, the dictionary will be installed, and you can spellcheck in that language now on.
-Additionally, you can press NVDA+CTRL+alt+s to bring up a list of languages where you can select a language manually and download the dictionary if it hasn't been downloaded previously or perform spell check in that language. press the same shortcut once more to return to the previous method, which is checking based on the keyboard input.
+Additionally, you can press NVDA+ALT+SHIFT+L to bring up a list of languages where you can select a language manually and download the dictionary if it hasn't been downloaded previously or perform spell check in that language. press the same shortcut once more to return to the previous method, which is checking based on the keyboard input.
 
 
 ## notes
 
 - closing the addon interface with the escape key will discard all the changes; nothing will be saved.
 - even if you only want to add words to the personal dictionary without replacing any text, you must press control+r for these words to be added to the personal dictionary.
-- you can change the launching addon hotkey (NVDA+alt+s), executing the action hotkey (control+r), and manual language selection hotkey (NVDA+CTRL+Alt+S) from the input gestures dialog.
+- you can change the launching addon hotkey (NVDA+alt+s), executing the action hotkey (control+r), and manual language selection hotkey (NVDA+Alt+SHIFT+L) from the input gestures dialog.
 
 
 ## keyboard hotkeys
@@ -58,6 +58,7 @@ Additionally, you can press NVDA+CTRL+alt+s to bring up a list of languages wher
 - up and down arrow to navigate between suggestions. 
 - enter to choose a suggestion.
 - backspace to remove a chosen suggestion.
+- control + c to copy the corrected text to the clipboard without replacing the selected text. (Can be changed from input gestures).
 - control + r to replace the selected suggestions in the text field. (Can be changed from input gestures).
 - escape to close both the suggestions menu and misspelled words menu.
-- NVDA+CTRL+Alt+S to select a language manually (can be changed from input gestures).
+- NVDA+Alt+SHIFT+L to select a language manually (can be changed from input gestures).
