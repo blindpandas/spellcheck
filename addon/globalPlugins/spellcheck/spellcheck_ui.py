@@ -32,7 +32,7 @@ with import_bundled_library():
 # This should be set to Tru in the final release
 # It prevent any key strokes from reaching the application
 # Thereby avoiding any unintentional edits to the underlying text control
-CAPTURE_KEYS_WHILE_IN_FOCUS = False
+CAPTURE_KEYS_WHILE_IN_FOCUS = True
 PASTE_GESTURE = KeyboardInputGesture.fromName("control+v")
 
 
