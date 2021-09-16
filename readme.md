@@ -30,6 +30,11 @@ You can remove any word that has been added to the personal dictionary by editin
 That is for the installed version appdata/roaming/nvda and for the portable version user config folder.
 the file name for the US English would be en_US.dic.
 
+### Ignore for this session
+
+The option before last in the suggestion menu is ignore for this session. So if there is a word which raises a spelling error, and you want it to be left out from being spellchecked, you can use this choice (Ignore for this session).
+for example: if the text was "hello users of nvda, we hope you are having a wonderful time with nvda and its add-ons. Unquestionably, nvda is an amazing screen reader.", if you added nvda to ignore for this session, the number of errors will reduce from 4 to one, the remaining one would be "addons". In other words, all "nvda" will be removed from the list of errors for that session.
+
 
 ## Support for Other languages
 
