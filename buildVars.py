@@ -4,6 +4,13 @@
 # Change this file instead of sconstruct or manifest files, whenever possible.
 
 
+from pathlib import Path
+
+
+HERE = Path.cwd()
+ADDON_DIRECTORY = HERE / "addon"
+
+
 # Since some strings in `addon_info` are translatable,
 # we need to include them in the .po files.
 # Gettext recognizes only strings given as parameters to the `_` function.
@@ -50,14 +57,15 @@ addon_info = {
 # pythonSources = ["addon/globalPlugins/*.py"]
 # For more information on SCons Glob expressions please take a look at:
 # https://scons.org/doc/production/HTML/scons-user/apd.html
-pythonSources = ["addon/globalPlugins/*.py", "addon/installTasks.py"]
+pythonSources = list(ADDON_DIRECTORY.joinpath("globalPlugins", "spellcheck").glob("*.py")) + ["addon/installTasks.py"]
+
 
 # Files that contain strings for translation. Usually your python sources
 i18nSources = pythonSources + ["buildVars.py"]
 
 # Files that will be ignored when building the nvda-addon file
 # Paths are relative to the addon directory, not to the root directory of your addon sources.
-excludedFiles = []
+excludedFiles = list(ADDON_DIRECTORY.rglob("__pycache__"))
 
 # Base language for the NVDA add-on
 # If your add-on is written in a language other than english, modify this variable.

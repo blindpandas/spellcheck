@@ -210,7 +210,7 @@ class MisspellingMenuItemObject(MenuItemObject):
         self._user_choice = choice
         if choice.choice_type is UserChoiceType.SUGGESTION:
             # translators: appears between the misspelled word and the selected suggestion by the user.
-            desc = _(f"accepted: {choice.name}")
+            desc = _("accepted: {suggestion}").format(suggestion=choice.name)
         elif choice.choice_type is UserChoiceType.IGNORE_FOR_THIS_SESSION:
             eventHandler.queueEvent("suggestionsClosed", FakeEditableNVDAObject())
             self.parent.ignore_for_this_session(self)
