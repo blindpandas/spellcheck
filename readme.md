@@ -2,7 +2,7 @@
 
 - authors: Fawaz Abdulrahman<fawaz.ar94@gmail.com> & Musharraf Omer<ibnomer2011@hotmail.com>
 - version: 1.1
-- download
+- [download](https://github.com/blindpandas/spellcheck/releases/download/v1.1/spellcheck-1.1.nvda-addon)
 
 ## functionality
 
@@ -58,7 +58,7 @@ Additionally, you can press NVDA+ALT+SHIFT+L to bring up a list of languages whe
 - up and down arrow to navigate between suggestions. 
 - enter to choose a suggestion.
 - backspace to remove a chosen suggestion.
-- control + c to copy the corrected text to the clipboard without replacing the selected text. (Can be changed from input gestures).
+- control + c to copy the corrected text to the clipboard without replacing the selected text.
 - control + r to replace the selected suggestions in the text field. (Can be changed from input gestures).
 - escape to close both the suggestions menu and misspelled words menu.
 - NVDA+Alt+SHIFT+L to select a language manually (can be changed from input gestures).

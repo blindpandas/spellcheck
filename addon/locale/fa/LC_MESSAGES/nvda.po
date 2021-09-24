@@ -1,0 +1,176 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: spellcheck-1.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-17 07:51+0300\n"
+"PO-Revision-Date: 2021-09-22 23:21+0330\n"
+"Last-Translator: Mohammadreza Rashad <mohammadreza5712@gmail.com>\n"
+"Language-Team: Mohammadreza Rashad <mohammadreza5712@gmail.com>\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Generator: Poedit 1.6.10\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: globalPlugins/spellcheck/__init__.py:76
+#, python-brace-format
+msgid "Downloaded: {progress}%"
+msgstr "{progress}% دانلود شد"
+
+#: globalPlugins/spellcheck/__init__.py:86
+#, python-brace-format
+msgid "Successfully downloaded dictionary for  language {lang}"
+msgstr "واژه‌نامه‌ی زبانِ {lang} با موفقیت دانلود شد"
+
+#: globalPlugins/spellcheck/__init__.py:89
+msgid "Dictionary Downloaded"
+msgstr "دیکشنری دانلود شد"
+
+#: globalPlugins/spellcheck/__init__.py:96
+#, python-brace-format
+msgid ""
+"Cannot download dictionary for language {lang}.\n"
+"Please check your connection and try again."
+msgstr ""
+"نتوانستم واژه‌نامه‌ی زبانِ {lang} را دانلود کنم.\n"
+"لطفا اتصال به اینترنت را بررسی کرده و دوباره تلاش کنید."
+
+#: globalPlugins/spellcheck/__init__.py:98
+msgid "Download Failed"
+msgstr "دانلود ناموفق بود"
+
+#: globalPlugins/spellcheck/__init__.py:109
+#, python-brace-format
+msgid ""
+"Dictionary for language {lang} is missing.\n"
+"Would you like to download it?"
+msgstr ""
+"واژه‌نامه‌ی زبانِ {lang} نیست.\n"
+"میخواهید دانلودش کنید؟"
+
+#: globalPlugins/spellcheck/__init__.py:111
+msgid "Download Language Dictionary"
+msgstr "دانلودِ واژه‌نامه‌ی زبان"
+
+#: globalPlugins/spellcheck/__init__.py:119
+#, python-brace-format
+msgid "Downloading Dictionary For Language {lang}"
+msgstr "در حالِ دانلودِ واژه‌نامه برای زبانِ {lang}"
+
+#: globalPlugins/spellcheck/__init__.py:123
+msgid "Retrieving download information..."
+msgstr "بازیابیِ اطلاعاتِ دانلود..."
+
+#: globalPlugins/spellcheck/__init__.py:149
+msgid ""
+"Checks spelling errors for the selected text using the current input language"
+msgstr ""
+"خطاهای املاییِ متنِ انتخاب‌شده را با استفاده از زبانِ ورودیِ جاری بررسی میکند"
+
+#: globalPlugins/spellcheck/__init__.py:169
+msgid ""
+"Toggles the method used in determining the language for spellchecking: user-"
+"chosen versus current input language"
+msgstr ""
+"روشِ تعیینِ زبانِ غلط‌یابی را میانِ انتخابِ کاربر و زبانِ ورودیِ جاری تغییر میدهد"
+
+#: globalPlugins/spellcheck/__init__.py:179
+msgid "Dialog is already open"
+msgstr "پنجره از قبل باز است"
+
+#: globalPlugins/spellcheck/__init__.py:187
+msgid "Please choose the language you want to use for spellchecking."
+msgstr "لطفا زبانی را که میخواهید برای غلط‌یابی استفاده شود انتخاب کنید."
+
+#: globalPlugins/spellcheck/__init__.py:189
+msgid "Choose Spellcheck Language"
+msgstr "زبانِ غلط‌یابی را انتخاب کنید"
+
+#: globalPlugins/spellcheck/__init__.py:201
+msgid "Using the active Input language for spellchecking"
+msgstr "در حالِ استفاده از زبانِ ورودیِ فعال برای غلط‌یابی"
+
+#: globalPlugins/spellcheck/__init__.py:211
+msgid "Spelling Errors"
+msgstr "خطاهای املایی"
+
+#: globalPlugins/spellcheck/__init__.py:217
+msgid "No spelling mistakes"
+msgstr "هیچ خطایی موجود نیست"
+
+#: globalPlugins/spellcheck/__init__.py:235
+#, python-brace-format
+msgid ""
+"Dialects found for language {lang}.\n"
+"Please select the one you want to download."
+msgstr ""
+"گویش‌هایی برای زبانِ {lang} پیدا شد.\n"
+"یکی را برای دانلود انتخاب کنید."
+
+#: globalPlugins/spellcheck/__init__.py:238
+msgid "Dialects Found"
+msgstr "گویش‌هایی پیدا شدند"
+
+#: globalPlugins/spellcheck/__init__.py:250
+#, python-brace-format
+msgid "Language dictionary for language {lang} is not available."
+msgstr "واژه‌نامه‌ی زبان برای زبانِ {lang} موجود نیست"
+
+#: globalPlugins/spellcheck/__init__.py:272
+msgid "Spellchecking is not supported here"
+msgstr "غلط‌یابی در اینجا پشتیبانی نمیشود"
+
+#: globalPlugins/spellcheck/__init__.py:285
+msgid "No text is selected"
+msgstr "متنی انتخاب نشده است"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:45
+msgid "Spellcheck"
+msgstr "غلط‌یاب"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:213
+#, python-brace-format
+msgid "accepted: {choice.name}"
+msgstr "پذیرفته شد: {choice.name}"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:220
+msgid "Added to personal dictionary"
+msgstr "به واژه‌نامه‌ی شخصی افزوده شد"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:259
+msgid "Ignore for this session"
+msgstr "این بار نادیده بگیر"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:265
+msgid "Add to dictionary"
+msgstr "به واژه‌نامه اضافه کن"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:305
+msgid "Copies the corrected text to the clipboard"
+msgstr "متنِ تصحیح‌شده را در کلیپ‌برد کپی میکند"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:314
+msgid "Replaces the text in the edit field with the corrected text"
+msgstr "متنِ داخل کادر ویرایشی را با متن تصحیح‌شده جایگزین میکند"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:432
+msgid "No misspellings"
+msgstr "بدونِ خطای املایی"
+
+#: globalPlugins/spellcheck/spellcheck_ui.py:451
+msgid "Can not replace text, the text field is read only"
+msgstr "نمیتوانم متن را جایگزین کنم. متن فقط‌خواندنی است."
+
+#: installTasks.py:29
+msgid ""
+"The Spellcheck add-on comes bundled with some default language dictionaries. "
+"Would you like to add them?"
+msgstr ""
+"افزونه‌ی غلط‌یاب همراه است با چند واژه‌نامه‌ی زبانِ پیش‌فرض. میخواهید آن‌ها را "
+"اضافه کنید؟"
+
+#: installTasks.py:30
+msgid "Add Default Dictionaries"
+msgstr "افزودنِ واژه‌نامه‌های پیش‌فرض"
