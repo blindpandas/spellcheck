@@ -52,9 +52,15 @@
 import sys
 import os
 import os.path
+dirAddon=os.path.dirname(__file__)
+sys.path.append(dirAddon)
+sys.path.append(os.path.join(dirAddon, "../_311"))
 import ctypes
+ctypes.__path__.append(os.path.join(dirAddon, "../_311", "ctypes"))
+
 from ctypes import c_char_p, c_int, c_size_t, c_void_p, pointer, CFUNCTYPE, POINTER
 import ctypes.util
+del sys.path[-1:]
 import platform
 import textwrap
 

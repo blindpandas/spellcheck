@@ -7,6 +7,7 @@ import math
 import os
 import globalVars
 import languageHandler
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from functools import partial
 from logHandler import log
@@ -16,7 +17,6 @@ from .helpers import import_bundled_library, DATA_DIRECTORY
 with import_bundled_library():
     import enchant
     import httpx
-    from concurrent.futures import ThreadPoolExecutor
 
 
 # Constants

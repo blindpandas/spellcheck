@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing
 from contextlib import contextmanager
 
@@ -10,6 +12,7 @@ from ._types import (
     CookieTypes,
     HeaderTypes,
     ProxiesTypes,
+    ProxyTypes,
     QueryParamTypes,
     RequestContent,
     RequestData,
@@ -24,19 +27,20 @@ def request(
     method: str,
     url: URLTypes,
     *,
-    params: QueryParamTypes = None,
-    content: RequestContent = None,
-    data: RequestData = None,
-    files: RequestFiles = None,
-    json: typing.Any = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
+    params: QueryParamTypes | None = None,
+    content: RequestContent | None = None,
+    data: RequestData | None = None,
+    files: RequestFiles | None = None,
+    json: typing.Any | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
-    allow_redirects: bool = True,
+    follow_redirects: bool = False,
     verify: VerifyTypes = True,
-    cert: CertTypes = None,
+    cert: CertTypes | None = None,
     trust_env: bool = True,
 ) -> Response:
     """
@@ -63,10 +67,11 @@ def request(
     request.
     * **auth** - *(optional)* An authentication class to use when sending the
     request.
+    * **proxy** - *(optional)* A proxy URL where all the traffic should be routed.
     * **proxies** - *(optional)* A dictionary mapping proxy keys to proxy URLs.
     * **timeout** - *(optional)* The timeout configuration to use when sending
     the request.
-    * **allow_redirects** - *(optional)* Enables or disables HTTP redirects.
+    * **follow_redirects** - *(optional)* Enables or disables HTTP redirects.
     * **verify** - *(optional)* SSL certificates (a.k.a CA bundle) used to
     verify the identity of requested hosts. Either `True` (default CA bundle),
     a path to an SSL certificate file, an `ssl.SSLContext`, or `False`
@@ -91,6 +96,7 @@ def request(
     """
     with Client(
         cookies=cookies,
+        proxy=proxy,
         proxies=proxies,
         cert=cert,
         verify=verify,
@@ -107,7 +113,7 @@ def request(
             params=params,
             headers=headers,
             auth=auth,
-            allow_redirects=allow_redirects,
+            follow_redirects=follow_redirects,
         )
 
 
@@ -116,19 +122,20 @@ def stream(
     method: str,
     url: URLTypes,
     *,
-    params: QueryParamTypes = None,
-    content: RequestContent = None,
-    data: RequestData = None,
-    files: RequestFiles = None,
-    json: typing.Any = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
+    params: QueryParamTypes | None = None,
+    content: RequestContent | None = None,
+    data: RequestData | None = None,
+    files: RequestFiles | None = None,
+    json: typing.Any | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
-    allow_redirects: bool = True,
+    follow_redirects: bool = False,
     verify: VerifyTypes = True,
-    cert: CertTypes = None,
+    cert: CertTypes | None = None,
     trust_env: bool = True,
 ) -> typing.Iterator[Response]:
     """
@@ -143,6 +150,7 @@ def stream(
     """
     with Client(
         cookies=cookies,
+        proxy=proxy,
         proxies=proxies,
         cert=cert,
         verify=verify,
@@ -159,7 +167,7 @@ def stream(
             params=params,
             headers=headers,
             auth=auth,
-            allow_redirects=allow_redirects,
+            follow_redirects=follow_redirects,
         ) as response:
             yield response
 
@@ -167,13 +175,14 @@ def stream(
 def get(
     url: URLTypes,
     *,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -183,8 +192,8 @@ def get(
 
     **Parameters**: See `httpx.request`.
 
-    Note that the `data`, `files`, and `json` parameters are not available on
-    this function, as `GET` requests should not include a request body.
+    Note that the `data`, `files`, `json` and `content` parameters are not available
+    on this function, as `GET` requests should not include a request body.
     """
     return request(
         "GET",
@@ -193,8 +202,9 @@ def get(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,
@@ -205,13 +215,14 @@ def get(
 def options(
     url: URLTypes,
     *,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -221,8 +232,8 @@ def options(
 
     **Parameters**: See `httpx.request`.
 
-    Note that the `data`, `files`, and `json` parameters are not available on
-    this function, as `OPTIONS` requests should not include a request body.
+    Note that the `data`, `files`, `json` and `content` parameters are not available
+    on this function, as `OPTIONS` requests should not include a request body.
     """
     return request(
         "OPTIONS",
@@ -231,8 +242,9 @@ def options(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,
@@ -243,13 +255,14 @@ def options(
 def head(
     url: URLTypes,
     *,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -259,8 +272,8 @@ def head(
 
     **Parameters**: See `httpx.request`.
 
-    Note that the `data`, `files`, and `json` parameters are not available on
-    this function, as `HEAD` requests should not include a request body.
+    Note that the `data`, `files`, `json` and `content` parameters are not available
+    on this function, as `HEAD` requests should not include a request body.
     """
     return request(
         "HEAD",
@@ -269,8 +282,9 @@ def head(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,
@@ -281,17 +295,18 @@ def head(
 def post(
     url: URLTypes,
     *,
-    content: RequestContent = None,
-    data: RequestData = None,
-    files: RequestFiles = None,
-    json: typing.Any = None,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    content: RequestContent | None = None,
+    data: RequestData | None = None,
+    files: RequestFiles | None = None,
+    json: typing.Any | None = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -312,8 +327,9 @@ def post(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,
@@ -324,17 +340,18 @@ def post(
 def put(
     url: URLTypes,
     *,
-    content: RequestContent = None,
-    data: RequestData = None,
-    files: RequestFiles = None,
-    json: typing.Any = None,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    content: RequestContent | None = None,
+    data: RequestData | None = None,
+    files: RequestFiles | None = None,
+    json: typing.Any | None = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -355,8 +372,9 @@ def put(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,
@@ -367,17 +385,18 @@ def put(
 def patch(
     url: URLTypes,
     *,
-    content: RequestContent = None,
-    data: RequestData = None,
-    files: RequestFiles = None,
-    json: typing.Any = None,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    content: RequestContent | None = None,
+    data: RequestData | None = None,
+    files: RequestFiles | None = None,
+    json: typing.Any | None = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -398,8 +417,9 @@ def patch(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,
@@ -410,13 +430,14 @@ def patch(
 def delete(
     url: URLTypes,
     *,
-    params: QueryParamTypes = None,
-    headers: HeaderTypes = None,
-    cookies: CookieTypes = None,
-    auth: AuthTypes = None,
-    proxies: ProxiesTypes = None,
-    allow_redirects: bool = True,
-    cert: CertTypes = None,
+    params: QueryParamTypes | None = None,
+    headers: HeaderTypes | None = None,
+    cookies: CookieTypes | None = None,
+    auth: AuthTypes | None = None,
+    proxy: ProxyTypes | None = None,
+    proxies: ProxiesTypes | None = None,
+    follow_redirects: bool = False,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
     trust_env: bool = True,
@@ -426,8 +447,8 @@ def delete(
 
     **Parameters**: See `httpx.request`.
 
-    Note that the `data`, `files`, and `json` parameters are not available on
-    this function, as `DELETE` requests should not include a request body.
+    Note that the `data`, `files`, `json` and `content` parameters are not available
+    on this function, as `DELETE` requests should not include a request body.
     """
     return request(
         "DELETE",
@@ -436,8 +457,9 @@ def delete(
         headers=headers,
         cookies=cookies,
         auth=auth,
+        proxy=proxy,
         proxies=proxies,
-        allow_redirects=allow_redirects,
+        follow_redirects=follow_redirects,
         cert=cert,
         verify=verify,
         timeout=timeout,

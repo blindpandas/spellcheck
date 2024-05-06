@@ -1,20 +1,22 @@
-from contextlib import contextmanager
+from __future__ import annotations
+
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from inspect import isasyncgenfunction, iscoroutinefunction
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, cast
+from typing import Any, Dict, Tuple, cast
 
 import pytest
 import sniffio
 
-from ._core._eventloop import get_all_backends, get_asynclib
+from ._core._eventloop import get_all_backends, get_async_backend
 from .abc import TestRunner
 
-if TYPE_CHECKING:
-    from _pytest.config import Config
+_current_runner: TestRunner | None = None
+_runner_stack: ExitStack | None = None
+_runner_leases = 0
 
-_current_runner: Optional[TestRunner] = None
 
-
-def extract_backend_and_options(backend: object) -> Tuple[str, Dict[str, Any]]:
+def extract_backend_and_options(backend: object) -> tuple[str, dict[str, Any]]:
     if isinstance(backend, str):
         return backend, {}
     elif isinstance(backend, tuple) and len(backend) == 2:
@@ -26,31 +28,35 @@ def extract_backend_and_options(backend: object) -> Tuple[str, Dict[str, Any]]:
 
 @contextmanager
 def get_runner(
-    backend_name: str, backend_options: Dict[str, Any]
+    backend_name: str, backend_options: dict[str, Any]
 ) -> Iterator[TestRunner]:
-    global _current_runner
-    if _current_runner:
-        yield _current_runner
-        return
+    global _current_runner, _runner_leases, _runner_stack
+    if _current_runner is None:
+        asynclib = get_async_backend(backend_name)
+        _runner_stack = ExitStack()
+        if sniffio.current_async_library_cvar.get(None) is None:
+            # Since we're in control of the event loop, we can cache the name of the
+            # async library
+            token = sniffio.current_async_library_cvar.set(backend_name)
+            _runner_stack.callback(sniffio.current_async_library_cvar.reset, token)
 
-    asynclib = get_asynclib(backend_name)
-    token = None
-    if sniffio.current_async_library_cvar.get(None) is None:
-        # Since we're in control of the event loop, we can cache the name of the async library
-        token = sniffio.current_async_library_cvar.set(backend_name)
-
-    try:
         backend_options = backend_options or {}
-        with asynclib.TestRunner(**backend_options) as runner:
-            _current_runner = runner
-            yield runner
+        _current_runner = _runner_stack.enter_context(
+            asynclib.create_test_runner(backend_options)
+        )
+
+    _runner_leases += 1
+    try:
+        yield _current_runner
     finally:
-        _current_runner = None
-        if token:
-            sniffio.current_async_library_cvar.reset(token)
+        _runner_leases -= 1
+        if not _runner_leases:
+            assert _runner_stack is not None
+            _runner_stack.close()
+            _runner_stack = _current_runner = None
 
 
-def pytest_configure(config: "Config") -> None:
+def pytest_configure(config: Any) -> None:
     config.addinivalue_line(
         "markers",
         "anyio: mark the (coroutine function) test to be run "
@@ -66,26 +72,12 @@ def pytest_fixture_setup(fixturedef: Any, request: Any) -> None:
 
         with get_runner(backend_name, backend_options) as runner:
             if isasyncgenfunction(func):
-                gen = func(*args, **kwargs)
-                try:
-                    value = runner.call(gen.asend, None)
-                except StopAsyncIteration:
-                    raise RuntimeError("Async generator did not yield")
-
-                yield value
-
-                try:
-                    runner.call(gen.asend, None)
-                except StopAsyncIteration:
-                    pass
-                else:
-                    runner.call(gen.aclose)
-                    raise RuntimeError("Async generator fixture did not stop")
+                yield from runner.run_asyncgen_fixture(func, kwargs)
             else:
-                yield runner.call(func, *args, **kwargs)
+                yield runner.run_fixture(func, kwargs)
 
-    # Only apply this to coroutine functions and async generator functions in requests that involve
-    # the anyio_backend fixture
+    # Only apply this to coroutine functions and async generator functions in requests
+    # that involve the anyio_backend fixture
     func = fixturedef.func
     if isasyncgenfunction(func) or iscoroutinefunction(func):
         if "anyio_backend" in request.fixturenames:
@@ -107,10 +99,10 @@ def pytest_pycollect_makeitem(collector: Any, name: Any, obj: Any) -> None:
 
 
 @pytest.hookimpl(tryfirst=True)
-def pytest_pyfunc_call(pyfuncitem: Any) -> Optional[bool]:
+def pytest_pyfunc_call(pyfuncitem: Any) -> bool | None:
     def run_with_hypothesis(**kwargs: Any) -> None:
         with get_runner(backend_name, backend_options) as runner:
-            runner.call(original_func, **kwargs)
+            runner.run_test(original_func, kwargs)
 
     backend = pyfuncitem.funcargs.get("anyio_backend")
     if backend:
@@ -129,14 +121,14 @@ def pytest_pyfunc_call(pyfuncitem: Any) -> Optional[bool]:
             funcargs = pyfuncitem.funcargs
             testargs = {arg: funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames}
             with get_runner(backend_name, backend_options) as runner:
-                runner.call(pyfuncitem.obj, **testargs)
+                runner.run_test(pyfuncitem.obj, testargs)
 
             return True
 
     return None
 
 
-@pytest.fixture(params=get_all_backends())
+@pytest.fixture(scope="module", params=get_all_backends())
 def anyio_backend(request: Any) -> Any:
     return request.param
 
@@ -150,7 +142,7 @@ def anyio_backend_name(anyio_backend: Any) -> str:
 
 
 @pytest.fixture
-def anyio_backend_options(anyio_backend: Any) -> Dict[str, Any]:
+def anyio_backend_options(anyio_backend: Any) -> dict[str, Any]:
     if isinstance(anyio_backend, str):
         return {}
     else:

@@ -5,27 +5,18 @@ Python environments. It is excluded from the code coverage checks.
 import ssl
 import sys
 
-# `contextlib.asynccontextmanager` exists from Python 3.7 onwards.
-# For 3.6 we require the `async_generator` package for a backported version.
-try:
-    from contextlib import asynccontextmanager  # type: ignore
-except ImportError:
-    from async_generator import asynccontextmanager  # type: ignore # noqa
-
 # Brotli support is optional
 # The C bindings in `brotli` are recommended for CPython.
 # The CFFI bindings in `brotlicffi` are recommended for PyPy and everything else.
 try:
     import brotlicffi as brotli
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     try:
         import brotli
     except ImportError:
         brotli = None
 
-if sys.version_info >= (3, 10) or (
-    sys.version_info >= (3, 7) and ssl.OPENSSL_VERSION_INFO >= (1, 1, 0, 7)
-):
+if sys.version_info >= (3, 10) or ssl.OPENSSL_VERSION_INFO >= (1, 1, 0, 7):
 
     def set_minimum_tls_version_1_2(context: ssl.SSLContext) -> None:
         # The OP_NO_SSL* and OP_NO_TLS* become deprecated in favor of
@@ -36,7 +27,6 @@ if sys.version_info >= (3, 10) or (
         # https://docs.python.org/3.7/library/ssl.html#ssl.SSLContext.minimum_version
         context.minimum_version = ssl.TLSVersion.TLSv1_2
 
-
 else:
 
     def set_minimum_tls_version_1_2(context: ssl.SSLContext) -> None:
@@ -46,3 +36,6 @@ else:
         context.options |= ssl.OP_NO_SSLv3
         context.options |= ssl.OP_NO_TLSv1
         context.options |= ssl.OP_NO_TLSv1_1
+
+
+__all__ = ["brotli", "set_minimum_tls_version_1_2"]

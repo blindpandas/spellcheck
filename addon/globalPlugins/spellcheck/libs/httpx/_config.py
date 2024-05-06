@@ -1,15 +1,18 @@
+from __future__ import annotations
+
+import logging
 import os
 import ssl
 import typing
-from base64 import b64encode
 from pathlib import Path
 
 import certifi
 
 from ._compat import set_minimum_tls_version_1_2
-from ._models import URL, Headers
+from ._models import Headers
 from ._types import CertTypes, HeaderTypes, TimeoutTypes, URLTypes, VerifyTypes
-from ._utils import get_ca_bundle_from_env, get_logger
+from ._urls import URL
+from ._utils import get_ca_bundle_from_env
 
 DEFAULT_CIPHERS = ":".join(
     [
@@ -31,18 +34,18 @@ DEFAULT_CIPHERS = ":".join(
 )
 
 
-logger = get_logger(__name__)
+logger = logging.getLogger("httpx")
 
 
 class UnsetType:
-    pass  # pragma: nocover
+    pass  # pragma: no cover
 
 
 UNSET = UnsetType()
 
 
 def create_ssl_context(
-    cert: CertTypes = None,
+    cert: CertTypes | None = None,
     verify: VerifyTypes = True,
     trust_env: bool = True,
     http2: bool = False,
@@ -62,11 +65,11 @@ class SSLConfig:
     def __init__(
         self,
         *,
-        cert: CertTypes = None,
+        cert: CertTypes | None = None,
         verify: VerifyTypes = True,
         trust_env: bool = True,
         http2: bool = False,
-    ):
+    ) -> None:
         self.cert = cert
         self.verify = verify
         self.trust_env = trust_env
@@ -74,12 +77,12 @@ class SSLConfig:
         self.ssl_context = self.load_ssl_context()
 
     def load_ssl_context(self) -> ssl.SSLContext:
-        logger.trace(
-            f"load_ssl_context "
-            f"verify={self.verify!r} "
-            f"cert={self.cert!r} "
-            f"trust_env={self.trust_env!r} "
-            f"http2={self.http2!r}"
+        logger.debug(
+            "load_ssl_context verify=%r cert=%r trust_env=%r http2=%r",
+            self.verify,
+            self.cert,
+            self.trust_env,
+            self.http2,
         )
 
         if self.verify:
@@ -127,23 +130,25 @@ class SSLConfig:
         # Signal to server support for PHA in TLS 1.3. Raises an
         # AttributeError if only read-only access is implemented.
         try:
-            context.post_handshake_auth = True  # type: ignore
-        except AttributeError:  # pragma: nocover
+            context.post_handshake_auth = True
+        except AttributeError:  # pragma: no cover
             pass
 
         # Disable using 'commonName' for SSLContext.check_hostname
         # when the 'subjectAltName' extension isn't available.
         try:
-            context.hostname_checks_common_name = False  # type: ignore
-        except AttributeError:  # pragma: nocover
+            context.hostname_checks_common_name = False
+        except AttributeError:  # pragma: no cover
             pass
 
         if ca_bundle_path.is_file():
-            logger.trace(f"load_verify_locations cafile={ca_bundle_path!s}")
-            context.load_verify_locations(cafile=str(ca_bundle_path))
+            cafile = str(ca_bundle_path)
+            logger.debug("load_verify_locations cafile=%r", cafile)
+            context.load_verify_locations(cafile=cafile)
         elif ca_bundle_path.is_dir():
-            logger.trace(f"load_verify_locations capath={ca_bundle_path!s}")
-            context.load_verify_locations(capath=str(ca_bundle_path))
+            capath = str(ca_bundle_path)
+            logger.debug("load_verify_locations capath=%r", capath)
+            context.load_verify_locations(capath=capath)
 
         self._load_client_certs(context)
 
@@ -163,10 +168,9 @@ class SSLConfig:
             alpn_idents = ["http/1.1", "h2"] if self.http2 else ["http/1.1"]
             context.set_alpn_protocols(alpn_idents)
 
-        if hasattr(context, "keylog_filename"):  # pragma: nocover (Available in 3.8+)
-            keylogfile = os.environ.get("SSLKEYLOGFILE")
-            if keylogfile and self.trust_env:
-                context.keylog_filename = keylogfile  # type: ignore
+        keylogfile = os.environ.get("SSLKEYLOGFILE")
+        if keylogfile and self.trust_env:
+            context.keylog_filename = keylogfile
 
         return context
 
@@ -183,7 +187,7 @@ class SSLConfig:
                 ssl_context.load_cert_chain(
                     certfile=self.cert[0],
                     keyfile=self.cert[1],
-                    password=self.cert[2],  # type: ignore
+                    password=self.cert[2],
                 )
 
 
@@ -203,13 +207,13 @@ class Timeout:
 
     def __init__(
         self,
-        timeout: typing.Union[TimeoutTypes, UnsetType] = UNSET,
+        timeout: TimeoutTypes | UnsetType = UNSET,
         *,
-        connect: typing.Union[None, float, UnsetType] = UNSET,
-        read: typing.Union[None, float, UnsetType] = UNSET,
-        write: typing.Union[None, float, UnsetType] = UNSET,
-        pool: typing.Union[None, float, UnsetType] = UNSET,
-    ):
+        connect: None | float | UnsetType = UNSET,
+        read: None | float | UnsetType = UNSET,
+        write: None | float | UnsetType = UNSET,
+        pool: None | float | UnsetType = UNSET,
+    ) -> None:
         if isinstance(timeout, Timeout):
             # Passed as a single explicit Timeout.
             assert connect is UNSET
@@ -247,7 +251,7 @@ class Timeout:
             self.write = timeout if isinstance(write, UnsetType) else write
             self.pool = timeout if isinstance(pool, UnsetType) else pool
 
-    def as_dict(self) -> typing.Dict[str, typing.Optional[float]]:
+    def as_dict(self) -> dict[str, float | None]:
         return {
             "connect": self.connect,
             "read": self.read,
@@ -285,15 +289,16 @@ class Limits:
     * **max_keepalive_connections** - Allow the connection pool to maintain
             keep-alive connections below this point. Should be less than or equal
             to `max_connections`.
+    * **keepalive_expiry** - Time limit on idle keep-alive connections in seconds.
     """
 
     def __init__(
         self,
         *,
-        max_connections: int = None,
-        max_keepalive_connections: int = None,
-        keepalive_expiry: typing.Optional[float] = 5.0,
-    ):
+        max_connections: int | None = None,
+        max_keepalive_connections: int | None = None,
+        keepalive_expiry: float | None = 5.0,
+    ) -> None:
         self.max_connections = max_connections
         self.max_keepalive_connections = max_keepalive_connections
         self.keepalive_expiry = keepalive_expiry
@@ -316,32 +321,48 @@ class Limits:
 
 
 class Proxy:
-    def __init__(self, url: URLTypes, *, headers: HeaderTypes = None):
+    def __init__(
+        self,
+        url: URLTypes,
+        *,
+        ssl_context: ssl.SSLContext | None = None,
+        auth: tuple[str, str] | None = None,
+        headers: HeaderTypes | None = None,
+    ) -> None:
         url = URL(url)
         headers = Headers(headers)
 
-        if url.scheme not in ("http", "https"):
+        if url.scheme not in ("http", "https", "socks5"):
             raise ValueError(f"Unknown scheme for proxy URL {url!r}")
 
         if url.username or url.password:
-            headers.setdefault(
-                "Proxy-Authorization",
-                self._build_auth_header(url.username, url.password),
-            )
-            # Remove userinfo from the URL authority, e.g.:
-            # 'username:password@proxy_host:proxy_port' -> 'proxy_host:proxy_port'
+            # Remove any auth credentials from the URL.
+            auth = (url.username, url.password)
             url = url.copy_with(username=None, password=None)
 
         self.url = url
+        self.auth = auth
         self.headers = headers
+        self.ssl_context = ssl_context
 
-    def _build_auth_header(self, username: str, password: str) -> str:
-        userpass = (username.encode("utf-8"), password.encode("utf-8"))
-        token = b64encode(b":".join(userpass)).decode()
-        return f"Basic {token}"
+    @property
+    def raw_auth(self) -> tuple[bytes, bytes] | None:
+        # The proxy authentication as raw bytes.
+        return (
+            None
+            if self.auth is None
+            else (self.auth[0].encode("utf-8"), self.auth[1].encode("utf-8"))
+        )
 
     def __repr__(self) -> str:
-        return f"Proxy(url={str(self.url)!r}, headers={dict(self.headers)!r})"
+        # The authentication is represented with the password component masked.
+        auth = (self.auth[0], "********") if self.auth else None
+
+        # Build a nice concise representation.
+        url_str = f"{str(self.url)!r}"
+        auth_str = f", auth={auth!r}" if auth else ""
+        headers_str = f", headers={dict(self.headers)!r}" if self.headers else ""
+        return f"Proxy({url_str}{auth_str}{headers_str})"
 
 
 DEFAULT_TIMEOUT_CONFIG = Timeout(timeout=5.0)

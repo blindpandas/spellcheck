@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Optional
+from signal import Signals
 
 from ._resources import AsyncResource
 from ._streams import ByteReceiveStream, ByteSendStream
@@ -39,7 +41,7 @@ class Process(AsyncResource):
         """
 
     @abstractmethod
-    def send_signal(self, signal: int) -> None:
+    def send_signal(self, signal: Signals) -> None:
         """
         Send a signal to the subprocess.
 
@@ -55,23 +57,23 @@ class Process(AsyncResource):
 
     @property
     @abstractmethod
-    def returncode(self) -> Optional[int]:
+    def returncode(self) -> int | None:
         """
-        The return code of the process. If the process has not yet terminated, this will be
-        ``None``.
+        The return code of the process. If the process has not yet terminated, this will
+        be ``None``.
         """
 
     @property
     @abstractmethod
-    def stdin(self) -> Optional[ByteSendStream]:
+    def stdin(self) -> ByteSendStream | None:
         """The stream for the standard input of the process."""
 
     @property
     @abstractmethod
-    def stdout(self) -> Optional[ByteReceiveStream]:
+    def stdout(self) -> ByteReceiveStream | None:
         """The stream for the standard output of the process."""
 
     @property
     @abstractmethod
-    def stderr(self) -> Optional[ByteReceiveStream]:
+    def stderr(self) -> ByteReceiveStream | None:
         """The stream for the standard error output of the process."""
